@@ -17,10 +17,14 @@ target/
 
 # Test & Debug files
 test-api.html
+test-trip-api.ps1
 diagnose.ps1
 clean-db.ps1
 RESTART.md
 FIX_FAILED_TO_FETCH.md
+frontend/test-xfyun.html
+frontend/XFYun配置说明.md
+frontend/语音输入使用指南.md
 *.png
 *.jpg
 *.jpeg

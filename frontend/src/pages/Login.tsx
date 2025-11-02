@@ -1,7 +1,9 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { authApi, tokenStorage } from '../services/auth';
 
 export default function Login() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -17,8 +19,8 @@ export default function Login() {
       tokenStorage.setToken(response.token);
       tokenStorage.setUser(response.user);
       
-      // Redirect to home page or dashboard
-      window.location.href = '/';
+      // Redirect to trips page
+      navigate('/trips');
     } catch (err: any) {
       setError(err.message || '登录失败，请检查邮箱和密码');
     } finally {
@@ -60,7 +62,7 @@ export default function Login() {
       </form>
 
       <p>
-        还没有账号？<a href="/register">注册</a>
+        还没有账号？<a href="#/register">注册</a>
       </p>
     </div>
   );

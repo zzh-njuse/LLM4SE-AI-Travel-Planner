@@ -1,6 +1,7 @@
 import express from 'express'
 import healthRouter from './controllers/health'
 import authRouter from './controllers/auth'
+import * as tripController from './controllers/trip'
 
 const app = express()
 
@@ -21,6 +22,12 @@ app.use((req, res, next) => {
 app.use(express.json())
 app.use('/api/v1/health', healthRouter)
 app.use('/api/v1/auth', authRouter)
+
+// Trip routes
+app.post('/api/v1/trips', tripController.createTrip)
+app.get('/api/v1/trips', tripController.getUserTrips)
+app.get('/api/v1/trips/:id', tripController.getTripDetail)
+app.delete('/api/v1/trips/:id', tripController.deleteTrip)
 
 const PORT = process.env.PORT || 8080
 app.listen(PORT, () => {

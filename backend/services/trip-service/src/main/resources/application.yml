@@ -20,6 +20,13 @@ spring:
 server:
   port: 8081
 
+# 阿里云通义千问 API 配置
+qwen:
+  api:
+    key: ${QWEN_API_KEY:sk-6be74065fcf945b99991d45372ac2f40}
+    url: ${QWEN_API_URL:https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation}
+  model: ${QWEN_MODEL:qwen-turbo}
+
 logging:
   level:
     com.example.tripservice: DEBUG

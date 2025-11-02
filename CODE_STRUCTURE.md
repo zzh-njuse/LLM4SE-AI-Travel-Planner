@@ -45,18 +45,30 @@
 │   ├── Dockerfile                 # 前端容器化配置
 │   ├── index.html                 # 应用入口 HTML
 │   ├── README.md                  # 前端说明文档
+│   ├── test-xfyun.html            # ✅ 科大讯飞 API 测试工具
+│   ├── XFYun配置说明.md            # ✅ 语音识别配置文档
+│   ├── 语音输入使用指南.md         # ✅ 语音功能使用说明
 │   └── src/
 │       ├── main.tsx               # React 入口文件
-│       ├── App.tsx                # 主应用组件（路由、用户状态管理）
-│       ├── styles.css             # 全局样式（包含登录/注册表单样式）
+│       ├── App.tsx                # ✅ 主应用组件（路由、用户状态管理）
+│       ├── styles.css             # ✅ 全局样式（包含表单、语音按钮等）
 │       ├── vite-env.d.ts          # Vite 环境变量类型定义
 │       ├── components/
-│       │   └── VoiceRecorder.tsx  # 语音录制组件（待实现）
+│       │   ├── VoiceInput.tsx     # ✅ 大型语音输入组件（带配置界面）
+│       │   ├── MiniVoiceInput.tsx # ✅ 迷你语音按钮（单字段输入）
+│       │   └── VoiceRecorder.tsx  # ⏳ 语音录制组件（备用）
 │       ├── pages/
 │       │   ├── Login.tsx          # ✅ 登录页面
-│       │   └── Register.tsx       # ✅ 注册页面
-│       └── services/
-│           └── auth.ts            # ✅ 认证 API 服务（register, login, token 存储）
+│       │   ├── Register.tsx       # ✅ 注册页面
+│       │   ├── CreateTrip.tsx     # ✅ 创建行程页面（含语音输入）
+│       │   ├── TripList.tsx       # ✅ 行程列表页面
+│       │   └── TripDetail.tsx     # ✅ 行程详情页面
+│       ├── services/
+│       │   ├── auth.ts            # ✅ 认证 API 服务（register, login, token）
+│       │   ├── trip.ts            # ✅ 行程 API 服务（CRUD 操作）
+│       │   └── xfyun.ts           # ✅ 科大讯飞语音识别服务（WebSocket）
+│       └── utils/
+│           └── voiceParser.ts     # ✅ 自然语言解析工具（日期、预算等）
 │
 ├── backend/
 │   ├── gateway/                   # Node.js API Gateway（端口 8080）
@@ -114,17 +126,26 @@
 
 ### 5.1 前端（React + Vite + TypeScript）
 - **✅ 认证 UI**：完整的登录/注册页面，支持表单验证、错误提示（中文）
-- **✅ 路由管理**：基于 hash 的简单路由（#login, #register, #home）
-- **✅ API 集成**：通过 `services/auth.ts` 与后端通信，包含错误处理与 token 存储
+- **✅ 路由管理**：基于 hash 的简单路由（#login, #register, #home, #create, #trips, #trip/:id）
+- **✅ API 集成**：通过 `services/auth.ts` 和 `services/trip.ts` 与后端通信，包含错误处理与 token 存储
 - **✅ 用户状态**：使用 localStorage 持久化用户信息和 JWT token
-- **⏳ 语音录制**：VoiceRecorder 组件骨架已创建，待实现实际录音功能
-- **⏳ 行程管理**：待实现行程创建、查看、编辑、地图展示等功能
+- **✅ 语音识别**：集成科大讯飞 WebSocket API，支持实时语音转文字
+  - VoiceInput 组件：大型语音输入框，带配置界面和实时转写显示
+  - MiniVoiceInput 组件：42x42px 迷你语音按钮，用于单个表单字段
+  - XFYun 服务：WebSocket 连接、音频采集、流式识别、文本累积
+  - 语音解析器：智能提取目的地、日期、预算、人数、偏好等信息
+- **✅ 行程管理**：完整的行程 CRUD 功能
+  - CreateTrip：创建行程页面，支持语音输入和智能解析
+  - TripList：行程列表展示
+  - TripDetail：行程详情查看
+- **⏳ 地图展示**：待实现行程地图可视化
 
 ### 5.2 后端 Gateway（Node.js + Express）
 - **✅ CORS 支持**：全局 CORS 中间件，支持跨域请求
 - **✅ 认证代理**：将 `/api/v1/auth/*` 请求转发到 trip-service
+- **✅ 行程代理**：将 `/api/v1/trips/*` 请求转发到 trip-service
 - **✅ 健康检查**：`/api/v1/health` 端点
-- **⏳ 其他路由**：待实现行程、费用、语音转写等 API 代理
+- **⏳ 语音转写**：待实现音频上传和转写代理
 
 ### 5.3 后端 trip-service（Java Spring Boot）
 - **✅ 用户认证**：
@@ -135,17 +156,29 @@
   - PostgreSQL 数据库集成（通过 Spring Data JPA）
   - User 实体（自动时间戳管理）
   - UserRepository（邮箱查询、存在性检查）
+  - Trip 实体（行程基本信息）
+  - TripRepository（用户行程查询）
 - **✅ 安全配置**：
   - Spring Security（无状态 session、BCrypt 密码编码器）
   - CORS 配置（允许跨域请求）
   - 公开端点白名单（/api/v1/auth/**, /health）
 - **✅ 错误处理**：统一的中文错误消息与 HTTP 状态码
-- **⏳ 行程管理**：待实现行程 CRUD、LLM 生成、预算计算等核心功能
+- **✅ 行程管理**：
+  - 创建行程（基本信息保存）
+  - 查询行程列表（按用户过滤）
+  - 查询行程详情
+  - 更新行程信息
+  - 删除行程
+- **⏳ LLM 集成**：待实现 AI 行程生成功能
+- **⏳ 预算计算**：待实现费用管理和预算分解
 
 ### 5.4 数据库（PostgreSQL via Supabase/本地）
 - **✅ Users 表**：通过 JPA 自动创建（ddl-auto=update）
   - 字段：id, email, password_hash, display_name, auth_provider, preferences, created_at, updated_at
-- **⏳ 其他表**：待创建 Trip, ItineraryItem, ExpenseRecord 等
+- **✅ Trips 表**：行程基本信息
+  - 字段：id, user_id, destination, start_date, end_date, participants, budget, preferences, raw_input, status, created_at, updated_at
+- **⏳ ItineraryItems 表**：待创建（行程详细项目）
+- **⏳ ExpenseRecords 表**：待创建（费用记录）
 
 ### 5.5 开发工具
 - **✅ Docker Compose**：本地开发环境定义（postgres, gateway, trip-service）
@@ -156,18 +189,73 @@
 
 ### 6.1 前端架构
 - **App.tsx**：应用根组件，负责：
-  - 基于 hash 的路由管理（#login, #register, #home）
+  - 基于 hash 的路由管理（#login, #register, #home, #create, #trips, #trip/:id）
   - 用户登录状态管理（从 localStorage 读取）
   - 退出登录逻辑
+  
 - **pages/Login.tsx & Register.tsx**：
   - 表单验证（邮箱格式、密码最小长度）
   - 与后端 API 通信（通过 auth.ts service）
   - 错误提示（中文）与加载状态
   - 成功后自动跳转首页
+
+- **pages/CreateTrip.tsx**：
+  - 双模式语音输入：
+    - 大型语音输入框：一次性说明所有信息，智能解析并填充所有字段
+    - 单字段语音按钮：针对每个输入框的独立语音输入
+  - 表单验证与提交
+  - 智能解析：目的地、日期、天数、预算、人数、偏好
+  - 与后端 API 集成（创建行程）
+
+- **pages/TripList.tsx & TripDetail.tsx**：
+  - 行程列表展示（按创建时间排序）
+  - 行程详情查看
+  - 删除行程功能
+
+- **components/VoiceInput.tsx**：
+  - 科大讯飞 API 配置界面（AppId、ApiKey、ApiSecret）
+  - 配置持久化（localStorage）
+  - 实时语音识别与文本显示
+  - 录音状态管理（录音中、停止、错误）
+  - 只在 `isFinal: true` 时触发回调（避免重复）
+
+- **components/MiniVoiceInput.tsx**：
+  - 42x42px 迷你语音按钮
+  - 录音状态动画（脉冲效果）
+  - 单字段语音输入
+  - 共享 XFYun recognizer 实例
+
 - **services/auth.ts**：
   - 封装认证 API 调用（register, login）
   - 错误处理（网络错误、业务错误）
   - Token 和用户信息存储工具（localStorage）
+
+- **services/trip.ts**：
+  - 封装行程 API 调用（create, list, detail, update, delete）
+  - 自动添加 Authorization 头部（JWT token）
+  - 统一错误处理
+
+- **services/xfyun.ts**：
+  - WebSocket 连接管理（URL 签名、HMAC-SHA256 认证）
+  - 音频采集（Web Audio API、ScriptProcessorNode、16kHz PCM）
+  - 流式语音识别（实时返回识别结果）
+  - 文本累积策略：
+    - 检测新句子开始（sn 重置或文本长度突变）
+    - 保存已完成句子到 `allText`
+    - 实时显示 `allText + currentSentence`
+    - 只在 `status=2` 时返回最终结果（`isFinal: true`）
+  - VAD 配置（vad_eos=10000ms，允许长停顿）
+  - 错误处理与重连机制
+
+- **utils/voiceParser.ts**：
+  - 自然语言解析工具（中文）
+  - 提取目的地：匹配"去xxx"、"到xxx"、"想去xxx"等模式
+  - 提取日期：支持"11月15日"、"2025-11-15"等格式
+  - 提取天数：支持"3天"、"五天"、"三天四夜"等
+  - 计算结束日期：根据开始日期和天数自动计算
+  - 提取预算：支持"3000元"、"三千块"等，中文数字转换
+  - 提取人数：支持"2人"、"三个人"等
+  - 提取偏好：匹配"喜欢xxx"、"想要xxx"、"一定要xxx"等
 
 ### 6.2 Gateway 架构（Node.js）
 - **index.ts**：
@@ -211,30 +299,36 @@
 
 ### 6.4 待实现的关键模块（规划）
 - **TripService（Java）**：
-  - 行程 CRUD（创建、查看、更新、删除）
-  - LLM 集成（调用 OpenAI/Azure 生成行程）
-  - 预算计算与分解
-  - 行程导出（JSON/PDF）
+  - ✅ 行程 CRUD（已完成基本功能）
+  - ⏳ LLM 集成（调用 OpenAI/Azure 生成详细行程）
+  - ⏳ 预算计算与分解
+  - ⏳ 行程导出（JSON/PDF）
+  
 - **LLM Adapter（Java）**：
   - 负责与 LLM 提供方通信（OpenAI/Azure 等）
   - Prompt 管理与优化
   - 重试、超时、限流策略
   - 响应解析与验证
+  
 - **Map Adapter（Java）**：
   - 调用地图 API（高德/百度）
   - 地理编码（地址 ↔ 坐标）
   - POI 查询
   - 路线规划
-- **TranscriptionService**：
-  - 音频上传处理
-  - 调用语音识别 API（科大讯飞等）
-  - 返回转写文本
+  
+- **TranscriptionService（已通过前端实现）**：
+  - ✅ 实时语音识别（科大讯飞 WebSocket API）
+  - ✅ 自然语言解析（voiceParser.ts）
+  - ⏳ 音频上传与服务端转写（备选方案）
+  
 - **前端组件**：
-  - VoiceRecorder（语音录制与上传）
-  - TripList（行程列表展示）
-  - TripDetail（行程详情与编辑）
-  - MapView（地图可视化）
-  - BudgetChart（预算分解图表）
+  - ✅ VoiceInput（大型语音输入框）
+  - ✅ MiniVoiceInput（迷你语音按钮）
+  - ✅ TripList（行程列表展示）
+  - ✅ TripDetail（行程详情）
+  - ✅ CreateTrip（行程创建表单）
+  - ⏳ MapView（地图可视化）
+  - ⏳ BudgetChart（预算分解图表）
 
 ## 7. API 设计（当前实现 + 规划）
 
@@ -263,12 +357,12 @@
 ### 7.2 规划中的 API
 
 #### 行程管理（Trips）
-- **GET /api/v1/trips** — 获取用户的所有行程列表
-- **POST /api/v1/trips** — 创建新行程（包含基本信息）
-- **GET /api/v1/trips/:id** — 获取行程详情
-- **PUT /api/v1/trips/:id** — 更新行程信息
-- **DELETE /api/v1/trips/:id** — 删除行程
-- **POST /api/v1/trips/:id/generate** — 使用 LLM 生成行程内容
+- **✅ GET /api/v1/trips** — 获取用户的所有行程列表
+- **✅ POST /api/v1/trips** — 创建新行程（包含基本信息）
+- **✅ GET /api/v1/trips/:id** — 获取行程详情
+- **✅ PUT /api/v1/trips/:id** — 更新行程信息
+- **✅ DELETE /api/v1/trips/:id** — 删除行程
+- **⏳ POST /api/v1/trips/:id/generate** — 使用 LLM 生成详细行程内容
 
 #### 行程项目（Itinerary Items）
 - **GET /api/v1/trips/:tripId/items** — 获取行程的所有项目
@@ -282,7 +376,11 @@
 - **DELETE /api/v1/expenses/:id** — 删除费用记录
 
 #### 语音转写（Transcription）
-- **POST /api/v1/transcribe** — 上传音频文件并返回转写文本
+- **✅ 实时语音识别** — 通过前端 WebSocket 直接连接科大讯飞 API
+  - 请求：实时音频流（16kHz PCM）
+  - 响应：流式返回识别文本
+  - 特性：VAD 端点检测、动态修正（wpgs）、多句累积
+- **⏳ POST /api/v1/transcribe** — 音频文件上传转写（备选方案）
   - 请求：multipart/form-data（音频文件）
   - 响应：`{ text: string, duration: number }`
 
@@ -324,12 +422,13 @@
 {
   id: Long (主键)
   userId: Long (外键 → User)
-  title: String (行程标题)
   destination: String (目的地)
   startDate: LocalDate (开始日期)
   endDate: LocalDate (结束日期)
   participants: Integer (参与人数)
+  budget: BigDecimal (预算)
   preferences: String (JSON，偏好信息)
+  rawInput: String (原始语音/文本输入)
   status: String (状态：draft, generated, confirmed)
   createdAt: LocalDateTime
   updatedAt: LocalDateTime
@@ -369,6 +468,126 @@
 ```
 
 **数据库实现**：使用 PostgreSQL（通过 Supabase 或本地部署），Java 层使用 Spring Data JPA 进行 ORM 映射。
+
+## 9.5 语音识别功能详解
+
+### 9.5.1 技术架构
+项目采用**前端直连**方案，通过 WebSocket 直接连接科大讯飞（iFlytek）实时语音转写 API，无需经过后端转发。
+
+**优势**：
+- ✅ 低延迟：音频数据直接发送，减少中间层
+- ✅ 高性能：避免后端带宽瓶颈
+- ✅ 实时反馈：流式返回识别结果，用户体验更好
+- ✅ 成本优化：节省后端服务器资源
+
+### 9.5.2 核心组件
+
+**XFYunSpeechRecognizer（services/xfyun.ts）**
+```typescript
+核心功能：
+- WebSocket 连接管理（URL 签名认证）
+- 音频采集与编码（Web Audio API）
+- 流式语音识别（实时返回结果）
+- 文本累积策略（跨停顿累积多句）
+
+关键技术点：
+1. 认证：HMAC-SHA256 签名，base64 编码
+2. 音频格式：16kHz、16bit、单声道 PCM
+3. 音频采集：ScriptProcessorNode（4096 samples buffer）
+4. VAD 配置：vad_eos=10000ms（允许10秒停顿）
+5. 动态修正：dwa="wpgs"（实时修正识别结果）
+6. 文本累积：
+   - 检测新句子：sn 重置或文本长度突变
+   - 保存完成句子到 allText
+   - 实时显示：allText + currentSentence
+   - 最终结果：仅在 status=2 时返回（避免重复）
+```
+
+**VoiceParser（utils/voiceParser.ts）**
+```typescript
+自然语言解析功能：
+- 提取目的地：正则匹配"去xxx"、"到xxx"等
+- 提取日期：支持"11月15日"、"2025-11-15"等格式
+- 计算天数：解析"3天"、"五天"、"三天四夜"
+- 自动计算结束日期：开始日期 + 天数
+- 提取预算：解析"3000元"、"三千块"，中文数字转换
+- 提取人数：解析"2人"、"三个人"等
+- 提取偏好：匹配"喜欢xxx"、"想要xxx"、"一定要xxx"
+
+支持的中文数字：
+一二三四五六七八九十百千万 → 阿拉伯数字
+示例："三千五百元" → 3500
+```
+
+### 9.5.3 双模式语音输入
+
+**模式 1：全局语音输入（VoiceInput.tsx）**
+- 用途：一次性说明所有旅行信息
+- 特点：大型输入框，带配置界面
+- 示例："我想去杭州玩3天，预算3000元，2个人，喜欢自然风光"
+- 效果：自动解析并填充所有表单字段
+
+**模式 2：单字段语音输入（MiniVoiceInput.tsx）**
+- 用途：针对单个输入框的语音输入
+- 特点：42x42px 迷你按钮，录音状态动画
+- 示例：对"目的地"字段说"杭州"
+- 效果：只更新对应字段，不影响其他字段
+
+### 9.5.4 用户配置
+
+科大讯飞 API 配置（存储在 localStorage）：
+```json
+{
+  "appId": "your_app_id",
+  "apiKey": "your_api_key",
+  "apiSecret": "your_api_secret"
+}
+```
+
+配置方式：
+1. 点击"配置语音识别"按钮
+2. 填写科大讯飞控制台获取的凭证
+3. 点击"保存配置"
+4. 配置自动持久化到本地
+
+测试工具：`frontend/test-xfyun.html`（独立测试页面）
+
+### 9.5.5 已解决的技术难点
+
+**问题 1：WebSocket 连接失败（Error 1006）**
+- 原因：URL 签名错误或参数格式不正确
+- 解决：严格按照官方文档生成签名，添加详细日志
+
+**问题 2：识别文本重复累积**
+- 原因：科大讯飞返回累积结果，前端也在累积
+- 解决：改用替换策略，只在新句子开始时累积
+
+**问题 3：停顿后文本消失**
+- 原因：VAD 端点检测过早结束会话
+- 解决：延长 vad_eos 至 10000ms
+
+**问题 4：文本在最后重复两次**
+- 原因：stopRecording 和 isFinal 回调都触发了 onResult
+- 解决：只在 isFinal: true 时触发回调
+
+**问题 5：日期字段同步更改**
+- 原因：单字段语音输入时，同时更新了 startDate 和 endDate
+- 解决：针对不同字段分别处理，只更新对应字段
+
+### 9.5.6 性能优化
+
+- ✅ 音频缓冲区优化：4096 samples，平衡延迟和性能
+- ✅ 共享 recognizer 实例：避免重复创建 AudioContext
+- ✅ 连接复用：同一会话内复用 WebSocket
+- ✅ 错误重试：网络错误自动提示，允许重新录音
+- ✅ 内存管理：录音结束后释放 AudioContext 资源
+
+### 9.5.7 相关文档
+
+- `frontend/XFYun配置说明.md`：API 凭证获取与配置指南
+- `frontend/语音输入使用指南.md`：用户使用手册
+- `frontend/test-xfyun.html`：独立测试工具
+- 科大讯飞官方文档：https://www.xfyun.cn/doc/asr/rtasr/API.html
 
 ## 9. 本地开发与运行
 
@@ -625,25 +844,28 @@ jobs:
 ### 12.2 下一步开发计划（优先级排序）
 
 **P0 - 核心功能**
-1. 行程 CRUD API 实现（Java trip-service）
-2. 行程数据模型与数据库表创建
-3. 前端行程列表与详情页面
+1. ✅ 行程 CRUD API 实现（Java trip-service）
+2. ✅ 行程数据模型与数据库表创建
+3. ✅ 前端行程列表与详情页面
+4. ✅ 语音识别集成（科大讯飞 WebSocket API）
+5. ✅ 自然语言解析（目的地、日期、预算等）
 
 **P1 - 重要功能**
-4. LLM 集成（行程生成）
-5. 地图集成（显示行程地点）
-6. 预算计算与可视化
+6. ⏳ LLM 集成（行程生成）
+7. ⏳ 地图集成（显示行程地点）
+8. ⏳ 预算计算与可视化
 
 **P2 - 增强功能**
-7. 语音录制与转写
-8. 行程导出（JSON/PDF）
-9. 用户偏好设置
+9. ⏳ 行程详细项目管理（ItineraryItems）
+10. ⏳ 费用记录与统计（ExpenseRecords）
+11. ⏳ 行程导出（JSON/PDF）
+12. ⏳ 用户偏好设置
 
 **P3 - 优化与完善**
-10. 单元测试与集成测试
-11. 性能优化（缓存、查询优化）
-12. API 文档生成
-13. CI/CD 流程完善
+13. ⏳ 单元测试与集成测试
+14. ⏳ 性能优化（缓存、查询优化）
+15. ⏳ API 文档生成（Swagger）
+16. ⏳ CI/CD 流程完善
 
 ### 12.3 代码质量改进
 - [ ] 添加 ESLint/Prettier 配置（前端 + Gateway）
@@ -769,19 +991,23 @@ Invoke-RestMethod -Uri 'http://localhost:8080/api/v1/auth/login' -Method Post -B
 - 用户认证系统（注册、登录）
 - 前后端通信与 CORS 配置
 - 数据库集成与 JPA 配置
+- 行程 CRUD 功能（创建、查询、更新、删除）
+- 语音识别集成（科大讯飞 WebSocket API）
+- 自然语言解析（目的地、日期、预算、人数、偏好）
+- 双模式语音输入（全局 + 单字段）
+- 行程列表与详情页面
 
 **进行中** 🚧
-- 行程管理功能
-- LLM 集成
+- LLM 集成（行程生成）
+- 地图集成
 
 **待开发** ⏳
-- 语音转写
-- 地图集成
-- 预算管理
-- 行程导出
+- 行程详细项目管理
+- 费用管理与预算分解
+- 行程导出（PDF/JSON）
 
 ---
 
 **最后更新**：2025年11月2日  
-**当前版本**：v0.1.0-alpha（认证系统完成）
+**当前版本**：v0.2.0-alpha（行程管理 + 语音识别完成）
 

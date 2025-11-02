@@ -1,7 +1,9 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { authApi, tokenStorage } from '../services/auth';
 
 export default function Register() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -18,8 +20,8 @@ export default function Register() {
       tokenStorage.setToken(response.token);
       tokenStorage.setUser(response.user);
       
-      // Redirect to home page or dashboard
-      window.location.href = '/';
+      // Redirect to trips page
+      navigate('/trips');
     } catch (err: any) {
       setError(err.message || '注册失败，请稍后重试');
     } finally {
@@ -73,7 +75,7 @@ export default function Register() {
       </form>
 
       <p>
-        已有账号？<a href="/login">登录</a>
+        已有账号？<a href="#/login">登录</a>
       </p>
     </div>
   );

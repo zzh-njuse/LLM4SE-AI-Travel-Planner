@@ -39,6 +39,50 @@ code {
   box-sizing: border-box;
 }
 
+/* 带语音按钮的输入框容器 */
+.input-with-voice {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.input-with-voice input {
+  flex: 1;
+  min-width: 0; /* 允许输入框缩小 */
+}
+
+.input-with-voice .voice-btn {
+  flex-shrink: 0; /* 防止按钮被压缩 */
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: #f8f9fa;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.input-with-voice .voice-btn:hover {
+  background: #e9ecef;
+  border-color: #adb5bd;
+}
+
+.input-with-voice .voice-btn.recording {
+  background: #fee;
+  border-color: #e74c3c;
+  animation: pulse-red 1s infinite;
+}
+
+@keyframes pulse-red {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
 button {
   width: 100%;
   padding: 12px;

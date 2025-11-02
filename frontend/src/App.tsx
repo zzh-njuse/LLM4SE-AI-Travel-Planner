@@ -1,63 +1,108 @@
 import { useState, useEffect } from 'react'
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import CreateTrip from './pages/CreateTrip'
+import TripList from './pages/TripList'
+import TripDetail from './pages/TripDetail'
 import { tokenStorage } from './services/auth'
 
-export default function App() {
-  const [currentPage, setCurrentPage] = useState('home');
-  const [user, setUser] = useState(tokenStorage.getUser());
+// Protected Route Component
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const token = tokenStorage.getToken();
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+  return <>{children}</>;
+}
 
-  useEffect(() => {
-    // Simple client-side routing based on hash
-    const handleHashChange = () => {
-      const hash = window.location.hash.slice(1) || 'home';
-      setCurrentPage(hash);
-    };
-
-    handleHashChange();
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
-  }, []);
+// Navigation Header
+function Header() {
+  const user = tokenStorage.getUser();
 
   const handleLogout = () => {
     tokenStorage.removeToken();
     tokenStorage.removeUser();
-    setUser(null);
-    window.location.hash = 'login';
+    window.location.href = '#/login';
+    window.location.reload();
   };
 
-  // Render based on current page
-  if (currentPage === 'login') {
-    return <Login />;
+  if (!user) {
+    return null;
   }
 
-  if (currentPage === 'register') {
-    return <Register />;
-  }
-
-  // Home page
   return (
-    <div style={{padding: 20}}>
-      <h1>AI 旅行规划助手</h1>
-      
-      {user ? (
-        <div>
-          <p>欢迎，{user.displayName}！</p>
-          <button onClick={handleLogout}>退出登录</button>
-        </div>
-      ) : (
-        <div>
-          <p>请先<a href="#login">登录</a>或<a href="#register">注册</a></p>
-        </div>
-      )}
-
-      <h2>即将推出的功能：</h2>
-      <ul>
-        <li>语音输入旅行偏好</li>
-        <li>AI 智能生成行程</li>
-        <li>预算管理</li>
-        <li>地图可视化</li>
-      </ul>
+    <div style={{
+      backgroundColor: '#4a90e2',
+      color: 'white',
+      padding: '1rem 2rem',
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+    }}>
+      <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
+        <h2 style={{ margin: 0, fontSize: '1.5rem' }}>✈️ AI 旅行规划助手</h2>
+        <nav style={{ display: 'flex', gap: '1rem' }}>
+          <a href="#/trips" style={{ color: 'white', textDecoration: 'none', fontSize: '1rem' }}>
+            我的行程
+          </a>
+          <a href="#/trips/new" style={{ color: 'white', textDecoration: 'none', fontSize: '1rem' }}>
+            创建新行程
+          </a>
+        </nav>
+      </div>
+      <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+        <span>👤 {user.displayName}</span>
+        <button
+          onClick={handleLogout}
+          style={{
+            padding: '0.5rem 1rem',
+            backgroundColor: 'transparent',
+            color: 'white',
+            border: '1px solid white',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontSize: '0.9rem'
+          }}
+        >
+          退出
+        </button>
+      </div>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <HashRouter>
+      <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
+        <Header />
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          
+          <Route path="/trips/new" element={
+            <ProtectedRoute>
+              <CreateTrip />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/trips/:id" element={
+            <ProtectedRoute>
+              <TripDetail />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/trips" element={
+            <ProtectedRoute>
+              <TripList />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/" element={<Navigate to="/trips" replace />} />
+        </Routes>
+      </div>
+    </HashRouter>
   );
 }
