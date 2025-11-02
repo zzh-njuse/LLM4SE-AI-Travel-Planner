@@ -14,3 +14,13 @@ target/
 
 # Vscode
 .vscode/
+
+# Test & Debug files
+test-api.html
+diagnose.ps1
+clean-db.ps1
+RESTART.md
+FIX_FAILED_TO_FETCH.md
+*.png
+*.jpg
+*.jpeg
