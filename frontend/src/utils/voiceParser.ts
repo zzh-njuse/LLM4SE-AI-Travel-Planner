@@ -98,12 +98,12 @@ export function extractDestination(text: string): string | undefined {
  * 从文本中提取人数
  */
 export function extractParticipants(text: string): number | undefined {
-  // 匹配"2个人", "两个人", "三人", "一家四口"
+  // 匹配"2个人", "两个人", "三人", "一家四口", "2人", "仨人"
   const patterns = [
-    /(\d+)[个]?人/,
-    /([一二三四五六七八九十]+)[个]?人/,
-    /一家(\d+)口/,
-    /一家([一二三四五六七八九十]+)口/
+    /(\d+)\s*个?\s*人/,  // 支持"2个人"、"2人"、"2 个人"(带空格)
+    /([一二三四五六七八九十两仨]+)\s*个?\s*人/,  // 支持"两个人"、"二人"、"仨人"
+    /一家\s*(\d+)\s*口/,
+    /一家\s*([一二三四五六七八九十]+)\s*口/
   ];
   
   for (const pattern of patterns) {
@@ -165,8 +165,11 @@ function chineseNumberToArabic(chinese: string): number {
     return parseInt(chinese, 10);
   }
   
+  // 特殊口语数字
+  if (chinese === '仨') return 3;
+  
   const chineseMap: { [key: string]: number } = {
-    '零': 0, '一': 1, '二': 2, '三': 3, '四': 4,
+    '零': 0, '一': 1, '二': 2, '两': 2, '三': 3, '四': 4,  // 添加"两"的支持
     '五': 5, '六': 6, '七': 7, '八': 8, '九': 9,
     '十': 10, '百': 100, '千': 1000, '万': 10000
   };
