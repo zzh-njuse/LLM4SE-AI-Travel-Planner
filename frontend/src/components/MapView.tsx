@@ -26,7 +26,6 @@ const MapView: React.FC<MapViewProps> = ({
   const markersRef = useRef<any[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
   const [error, setError] = useState('');
-  const [showConfig, setShowConfig] = useState(false);
   const [config, setConfig] = useState<AmapConfig>({
     key: '',
     securityJsCode: ''
@@ -39,7 +38,6 @@ const MapView: React.FC<MapViewProps> = ({
       setConfig(savedConfig);
       initMap(savedConfig);
     } else {
-      setShowConfig(true);
       setError('请先配置高德地图 API Key');
     }
   }, []);
@@ -249,95 +247,8 @@ const MapView: React.FC<MapViewProps> = ({
     }
 
     saveAmapConfig(config);
-    setShowConfig(false);
     initMap(config);
   };
-
-  if (showConfig) {
-    return (
-      <div style={{ padding: '20px', backgroundColor: '#f5f5f5', borderRadius: '8px' }}>
-        <h3>配置高德地图 API</h3>
-        <p style={{ color: '#666', marginBottom: '20px' }}>
-          请访问 <a href="https://lbs.amap.com/" target="_blank" rel="noopener noreferrer">高德开放平台</a> 获取 API Key
-        </p>
-        
-        <div style={{ marginBottom: '16px' }}>
-          <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>
-            API Key <span style={{ color: 'red' }}>*</span>
-          </label>
-          <input
-            type="text"
-            value={config.key}
-            onChange={(e) => setConfig({ ...config, key: e.target.value })}
-            placeholder="请输入高德地图 API Key"
-            style={{
-              width: '100%',
-              padding: '10px',
-              fontSize: '14px',
-              border: '1px solid #ddd',
-              borderRadius: '4px'
-            }}
-          />
-        </div>
-
-        <div style={{ marginBottom: '16px' }}>
-          <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>
-            安全密钥（可选）
-          </label>
-          <input
-            type="text"
-            value={config.securityJsCode}
-            onChange={(e) => setConfig({ ...config, securityJsCode: e.target.value })}
-            placeholder="请输入安全密钥"
-            style={{
-              width: '100%',
-              padding: '10px',
-              fontSize: '14px',
-              border: '1px solid #ddd',
-              borderRadius: '4px'
-            }}
-          />
-        </div>
-
-        {error && (
-          <div style={{ padding: '10px', backgroundColor: '#fee', color: '#c33', borderRadius: '4px', marginBottom: '16px' }}>
-            {error}
-          </div>
-        )}
-
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <button
-            onClick={handleSaveConfig}
-            style={{
-              padding: '10px 20px',
-              backgroundColor: '#1890ff',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '14px'
-            }}
-          >
-            保存配置
-          </button>
-          <button
-            onClick={() => setShowConfig(false)}
-            style={{
-              padding: '10px 20px',
-              backgroundColor: '#fff',
-              color: '#666',
-              border: '1px solid #ddd',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '14px'
-            }}
-          >
-            取消
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
@@ -355,21 +266,6 @@ const MapView: React.FC<MapViewProps> = ({
           boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
         }}>
           {error}
-          <button
-            onClick={() => setShowConfig(true)}
-            style={{
-              marginLeft: '10px',
-              padding: '4px 12px',
-              backgroundColor: '#fff',
-              color: '#1890ff',
-              border: '1px solid #1890ff',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '12px'
-            }}
-          >
-            重新配置
-          </button>
         </div>
       )}
       
@@ -393,26 +289,6 @@ const MapView: React.FC<MapViewProps> = ({
           }}
         />
       )}
-
-      <button
-        onClick={() => setShowConfig(true)}
-        style={{
-          position: 'absolute',
-          bottom: '20px',
-          right: '20px',
-          padding: '10px 16px',
-          backgroundColor: 'white',
-          color: '#666',
-          border: '1px solid #ddd',
-          borderRadius: '4px',
-          cursor: 'pointer',
-          fontSize: '14px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-          zIndex: 999
-        }}
-      >
-        ⚙️ 配置地图
-      </button>
     </div>
   );
 };
