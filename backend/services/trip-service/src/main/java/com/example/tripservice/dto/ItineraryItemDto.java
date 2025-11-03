@@ -14,6 +14,36 @@ public class ItineraryItemDto {
     private String description;
     private BigDecimal estimatedCost;
     private String notes;
+    private Coordinates coordinates;
+    
+    // 坐标内部类
+    public static class Coordinates {
+        private Double lng;
+        private Double lat;
+        
+        public Coordinates() {}
+        
+        public Coordinates(Double lng, Double lat) {
+            this.lng = lng;
+            this.lat = lat;
+        }
+        
+        public Double getLng() {
+            return lng;
+        }
+        
+        public void setLng(Double lng) {
+            this.lng = lng;
+        }
+        
+        public Double getLat() {
+            return lat;
+        }
+        
+        public void setLat(Double lat) {
+            this.lat = lat;
+        }
+    }
     
     // Getters and Setters
     public Long getId() {
@@ -94,5 +124,13 @@ public class ItineraryItemDto {
     
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+    
+    public Coordinates getCoordinates() {
+        return coordinates;
+    }
+    
+    public void setCoordinates(Coordinates coordinates) {
+        this.coordinates = coordinates;
     }
 }

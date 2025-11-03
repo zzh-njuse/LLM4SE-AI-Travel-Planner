@@ -47,6 +47,13 @@ amap:
   api:
     key: [YOUR-AMAP-WEB-SERVICE-KEY]  # 从 https://console.amap.com/dev/key/app 获取 "Web服务" 类型的 Key
 
+# 科大讯飞语音识别 API 配置
+xfyun:
+  api:
+    appid: [YOUR-XFYUN-APPID]      # 从 https://console.xfyun.cn/ 获取
+    apikey: [YOUR-XFYUN-API-KEY]   # 从 https://console.xfyun.cn/ 获取
+    apisecret: [YOUR-XFYUN-API-SECRET]  # 从 https://console.xfyun.cn/ 获取
+
 logging:
   level:
     org.hibernate.SQL: DEBUG

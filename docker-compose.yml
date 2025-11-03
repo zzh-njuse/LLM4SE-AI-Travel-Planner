@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  # 后端服务
+  backend:
+    build:
+      context: ./backend/services/trip-service
+      dockerfile: Dockerfile
+    container_name: ai-travel-backend
+    ports:
+      - "8081:8081"
+    environment:
+      # Supabase 数据库配置
+      - SPRING_DATASOURCE_URL=${SUPABASE_URL}
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=${SUPABASE_PASSWORD}
+      
+      # 阿里云通义千问 API
+      - QWEN_API_KEY=${QWEN_API_KEY}
+      
+      # 高德地图 API
+      - AMAP_API_KEY=${AMAP_API_KEY}
+      
+      # 科大讯飞语音识别 API
+      - XFYUN_API_APPID=${XFYUN_APPID}
+      - XFYUN_API_APIKEY=${XFYUN_API_KEY}
+      - XFYUN_API_APISECRET=${XFYUN_API_SECRET}
+      
+      # JPA 配置
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - SPRING_JPA_SHOW_SQL=false
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8081/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    networks:
+      - ai-travel-network
+
+  # 前端服务
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ai-travel-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - ai-travel-network
+
+networks:
+  ai-travel-network:
+    driver: bridge

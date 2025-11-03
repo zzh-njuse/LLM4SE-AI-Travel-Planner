@@ -53,7 +53,7 @@ public class QwenService {
             // 参数配置
             Map<String, Object> parameters = new HashMap<>();
             parameters.put("result_format", "message");
-            parameters.put("max_tokens", 2000);
+            parameters.put("max_tokens", 6000);  // 增加 token 限制,支持更长的行程规划
             parameters.put("temperature", 0.7);
             parameters.put("top_p", 0.8);
             requestBody.put("parameters", parameters);
@@ -69,7 +69,7 @@ public class QwenService {
 
             logger.info("通义千问响应成功");
 
-            // 解析响应，提取生成的文本
+            // 解析响应,提取生成的文本
             JsonNode responseNode = objectMapper.readTree(response);
             String generatedText = responseNode
                     .path("output")
@@ -78,6 +78,14 @@ public class QwenService {
                     .path("message")
                     .path("content")
                     .asText();
+
+            logger.info("生成的文本长度: {} 字符", generatedText.length());
+            logger.debug("生成的 JSON 内容: {}", generatedText);
+            
+            // 验证 JSON 是否完整
+            if (!generatedText.trim().endsWith("}")) {
+                logger.warn("警告: 生成的 JSON 可能不完整,未以 } 结尾");
+            }
 
             return generatedText;
 
@@ -95,8 +103,9 @@ public class QwenService {
                 你是一个专业的旅行规划助手。请根据用户的需求生成详细的旅行行程规划。
                 
                 要求：
-                1. 返回严格的 JSON 格式，不要有任何额外的文字说明
-                2. JSON 结构如下：
+                1. 必须返回严格的 JSON 格式,不要有任何额外的文字说明或markdown标记
+                2. JSON 必须完整,确保所有括号正确闭合
+                3. JSON 结构如下：
                 {
                   "title": "行程标题",
                   "destination": "目的地",
@@ -110,9 +119,9 @@ public class QwenService {
                           "title": "景点名称",
                           "type": "attraction",
                           "location": "具体地址",
-                          "description": "活动描述",
+                          "description": "简短描述(50字以内)",
                           "estimatedCost": 100.0,
-                          "notes": "温馨提示"
+                          "notes": "简短提示(30字以内)"
                         }
                       ]
                     }
@@ -126,12 +135,13 @@ public class QwenService {
                   }
                 }
                 
-                3. type 只能是以下值之一：attraction（景点）、restaurant（餐厅）、hotel（住宿）、transport（交通）、other（其他）
-                4. 时间格式为 HH:mm（24小时制）
-                5. 费用单位为人民币（元）
-                6. 根据用户的预算合理安排行程，确保总费用不超过预算
-                7. 每天安排 3-5 个活动，时间合理分配
-                8. 提供实用的旅行建议和注意事项
+                4. type 只能是以下值之一：attraction（景点）、restaurant（餐厅）、hotel（住宿）、transport（交通）、other（其他）
+                5. 时间格式为 HH:mm（24小时制）
+                6. 费用单位为人民币（元）
+                7. 根据用户的预算合理安排行程,确保总费用不超过预算
+                8. 每天安排 3-5 个活动,时间合理分配
+                9. description 和 notes 要简洁,避免过长文字
+                10. 确保 JSON 完整,所有字段必须正确闭合
                 """;
     }
 }

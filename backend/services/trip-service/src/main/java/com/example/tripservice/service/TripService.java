@@ -37,6 +37,9 @@ public class TripService {
     private QwenService qwenService;
 
     @Autowired
+    private AmapGeocodingService amapGeocodingService;
+
+    @Autowired
     private ObjectMapper objectMapper;
 
     /**
@@ -118,6 +121,16 @@ public class TripService {
                     
                     if (itemNode.has("notes")) {
                         item.setNotes(itemNode.path("notes").asText());
+                    }
+                    
+                    // 自动获取地理坐标
+                    String location = item.getLocation();
+                    if (location != null && !location.isEmpty()) {
+                        String coordinates = amapGeocodingService.geocodeAddress(location, trip.getDestination());
+                        if (coordinates != null) {
+                            item.setCoordinates(coordinates);
+                            logger.debug("已获取坐标: {} -> {}", location, coordinates);
+                        }
                     }
                     
                     items.add(item);
@@ -207,6 +220,115 @@ public class TripService {
         itineraryItemRepository.deleteByTripId(tripId);
         tripRepository.delete(trip);
         logger.info("已删除行程 {}", tripId);
+    }
+
+    /**
+     * 更新行程信息
+     */
+    @Transactional
+    public TripResponse updateTrip(Long tripId, Long userId, TripResponse updateData) {
+        Trip trip = tripRepository.findById(tripId)
+            .orElseThrow(() -> new RuntimeException("行程不存在"));
+        
+        if (!trip.getUserId().equals(userId)) {
+            throw new RuntimeException("无权修改此行程");
+        }
+        
+        // 更新基本信息
+        if (updateData.getTitle() != null) {
+            trip.setTitle(updateData.getTitle());
+        }
+        if (updateData.getDestination() != null) {
+            trip.setDestination(updateData.getDestination());
+        }
+        if (updateData.getBudgetSummary() != null && updateData.getBudgetSummary().getTotalBudget() != null) {
+            BigDecimal totalBudget = updateData.getBudgetSummary().getTotalBudget();
+            trip.setBudget(totalBudget);
+        }
+        
+        trip = tripRepository.save(trip);
+        logger.info("已更新行程 {}", tripId);
+        
+        return getTripDetail(tripId, userId);
+    }
+
+    /**
+     * 更新行程项
+     */
+    @Transactional
+    public TripResponse updateItineraryItem(Long tripId, Long userId, int itemIndex, java.util.Map<String, Object> updateData) {
+        Trip trip = tripRepository.findById(tripId)
+            .orElseThrow(() -> new RuntimeException("行程不存在"));
+        
+        if (!trip.getUserId().equals(userId)) {
+            throw new RuntimeException("无权修改此行程");
+        }
+        
+        List<ItineraryItem> items = itineraryItemRepository.findByTripIdOrderByDayIndexAscStartTimeAsc(tripId);
+        
+        if (itemIndex < 0 || itemIndex >= items.size()) {
+            throw new RuntimeException("行程项索引无效");
+        }
+        
+        ItineraryItem item = items.get(itemIndex);
+        
+        // 更新字段
+        if (updateData.containsKey("title")) {
+            item.setTitle((String) updateData.get("title"));
+        }
+        if (updateData.containsKey("location")) {
+            item.setLocation((String) updateData.get("location"));
+        }
+        if (updateData.containsKey("description")) {
+            item.setDescription((String) updateData.get("description"));
+        }
+        if (updateData.containsKey("startTime")) {
+            String timeStr = (String) updateData.get("startTime");
+            item.setStartTime(java.time.LocalTime.parse(timeStr));
+        }
+        if (updateData.containsKey("endTime")) {
+            String timeStr = (String) updateData.get("endTime");
+            item.setEndTime(java.time.LocalTime.parse(timeStr));
+        }
+        if (updateData.containsKey("estimatedCost")) {
+            Object cost = updateData.get("estimatedCost");
+            if (cost instanceof Number) {
+                item.setEstimatedCost(BigDecimal.valueOf(((Number) cost).doubleValue()));
+            }
+        }
+        if (updateData.containsKey("notes")) {
+            item.setNotes((String) updateData.get("notes"));
+        }
+        
+        itineraryItemRepository.save(item);
+        logger.info("已更新行程项: tripId={}, itemIndex={}", tripId, itemIndex);
+        
+        return getTripDetail(tripId, userId);
+    }
+
+    /**
+     * 删除行程项
+     */
+    @Transactional
+    public TripResponse deleteItineraryItem(Long tripId, Long userId, int itemIndex) {
+        Trip trip = tripRepository.findById(tripId)
+            .orElseThrow(() -> new RuntimeException("行程不存在"));
+        
+        if (!trip.getUserId().equals(userId)) {
+            throw new RuntimeException("无权修改此行程");
+        }
+        
+        List<ItineraryItem> items = itineraryItemRepository.findByTripIdOrderByDayIndexAscStartTimeAsc(tripId);
+        
+        if (itemIndex < 0 || itemIndex >= items.size()) {
+            throw new RuntimeException("行程项索引无效");
+        }
+        
+        ItineraryItem itemToDelete = items.get(itemIndex);
+        itineraryItemRepository.delete(itemToDelete);
+        logger.info("已删除行程项: tripId={}, itemIndex={}", tripId, itemIndex);
+        
+        return getTripDetail(tripId, userId);
     }
 
     // ==================== 私有辅助方法 ====================
@@ -352,6 +474,40 @@ public class TripService {
         dto.setDescription(item.getDescription());
         dto.setEstimatedCost(item.getEstimatedCost());
         dto.setNotes(item.getNotes());
+        
+        // 解析坐标 JSON 字符串
+        if (item.getCoordinates() != null && !item.getCoordinates().isEmpty()) {
+            try {
+                // 简单的 JSON 解析: {"lng":xxx,"lat":xxx}
+                String coordStr = item.getCoordinates();
+                coordStr = coordStr.replace("{", "").replace("}", "").replace("\"", "");
+                String[] parts = coordStr.split(",");
+                
+                Double lng = null;
+                Double lat = null;
+                
+                for (String part : parts) {
+                    String[] kv = part.split(":");
+                    if (kv.length == 2) {
+                        String key = kv[0].trim();
+                        Double value = Double.parseDouble(kv[1].trim());
+                        if ("lng".equals(key)) {
+                            lng = value;
+                        } else if ("lat".equals(key)) {
+                            lat = value;
+                        }
+                    }
+                }
+                
+                if (lng != null && lat != null) {
+                    dto.setCoordinates(new ItineraryItemDto.Coordinates(lng, lat));
+                }
+            } catch (Exception e) {
+                // 解析失败时忽略坐标
+                System.err.println("Failed to parse coordinates: " + item.getCoordinates());
+            }
+        }
+        
         return dto;
     }
 }

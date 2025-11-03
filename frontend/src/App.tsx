@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import CreateTrip from './pages/CreateTrip'
@@ -18,7 +18,9 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 // Navigation Header
 function Header() {
+  const location = useLocation();
   const user = tokenStorage.getUser();
+  const token = tokenStorage.getToken();
 
   const handleLogout = () => {
     tokenStorage.removeToken();
@@ -27,7 +29,14 @@ function Header() {
     window.location.reload();
   };
 
-  if (!user) {
+  // 在登录和注册页面不显示 Header
+  const hideHeaderPaths = ['/login', '/register'];
+  if (hideHeaderPaths.includes(location.pathname)) {
+    return null;
+  }
+
+  // 没有登录不显示 Header
+  if (!user || !token) {
     return null;
   }
 
@@ -44,10 +53,10 @@ function Header() {
       <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
         <h2 style={{ margin: 0, fontSize: '1.5rem' }}>✈️ AI 旅行规划助手</h2>
         <nav style={{ display: 'flex', gap: '1rem' }}>
-          <a href="#/trips" style={{ color: 'white', textDecoration: 'none', fontSize: '1rem' }}>
+          <a href="#/trips" style={{ color: 'white', textDecoration: 'none', fontSize: '1rem', whiteSpace: 'nowrap' }}>
             我的行程
           </a>
-          <a href="#/trips/new" style={{ color: 'white', textDecoration: 'none', fontSize: '1rem' }}>
+          <a href="#/trips/new" style={{ color: 'white', textDecoration: 'none', fontSize: '1rem', whiteSpace: 'nowrap' }}>
             创建新行程
           </a>
         </nav>

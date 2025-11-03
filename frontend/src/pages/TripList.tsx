@@ -10,8 +10,14 @@ export default function TripList() {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    // 检查是否登录
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+      navigate('/login');
+      return;
+    }
     loadTrips();
-  }, []);
+  }, [navigate]);
 
   const loadTrips = async () => {
     try {
@@ -21,6 +27,12 @@ export default function TripList() {
       setError('');
     } catch (err: any) {
       console.error('加载行程失败:', err);
+      // 如果是 401 错误,说明 token 失效,跳转到登录页
+      if (err.response?.status === 401) {
+        localStorage.removeItem('auth_token');
+        navigate('/login');
+        return;
+      }
       setError(err.response?.data?.error || '加载行程失败');
     } finally {
       setLoading(false);
@@ -84,11 +96,12 @@ export default function TripList() {
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem' }}>
         <div style={{ 
           display: 'flex', 
-          justifyContent: 'space-between', 
+          flexDirection: 'column',
           alignItems: 'center',
-          marginBottom: '2rem'
+          marginBottom: '2rem',
+          gap: '1rem'
         }}>
-          <h1>我的行程</h1>
+          <h1 style={{ margin: 0 }}>我的行程</h1>
           <button
             onClick={() => navigate('/trips/new')}
             style={{

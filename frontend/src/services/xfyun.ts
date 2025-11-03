@@ -375,7 +375,35 @@ export class XFYunSpeechRecognizer {
 }
 
 /**
- * 从 localStorage 获取配置
+ * 从后端获取科大讯飞配置
+ */
+export async function getXFYunConfigFromBackend(): Promise<XFYunConfig | null> {
+  try {
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+      return null;
+    }
+
+    const response = await fetch('http://localhost:8081/api/v1/config/xfyun', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const config = await response.json();
+    return config;
+  } catch (error) {
+    console.error('获取科大讯飞配置失败:', error);
+    return null;
+  }
+}
+
+/**
+ * 从 localStorage 获取配置(已废弃,保留向后兼容)
  */
 export function getXFYunConfig(): XFYunConfig | null {
   const appId = localStorage.getItem('xfyun_app_id');
@@ -390,10 +418,11 @@ export function getXFYunConfig(): XFYunConfig | null {
 }
 
 /**
- * 保存配置到 localStorage
+ * 保存配置到 localStorage(已废弃,保留向后兼容)
  */
 export function saveXFYunConfig(config: XFYunConfig): void {
   localStorage.setItem('xfyun_app_id', config.appId);
   localStorage.setItem('xfyun_api_key', config.apiKey);
   localStorage.setItem('xfyun_api_secret', config.apiSecret);
 }
+

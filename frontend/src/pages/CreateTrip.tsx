@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createTrip, CreateTripRequest } from '../services/trip';
 import VoiceInput from '../components/VoiceInput';
@@ -21,6 +21,14 @@ export default function CreateTrip() {
     rawInput: ''
   });
 
+  useEffect(() => {
+    // 检查是否登录
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+      navigate('/login');
+    }
+  }, [navigate]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -32,6 +40,12 @@ export default function CreateTrip() {
       navigate(`/trips/${trip.id}`);
     } catch (err: any) {
       console.error('创建行程失败:', err);
+      // 如果是 401 错误,说明 token 失效,跳转到登录页
+      if (err.response?.status === 401) {
+        localStorage.removeItem('auth_token');
+        navigate('/login');
+        return;
+      }
       setError(err.response?.data?.error || err.message || '创建行程失败，请重试');
     } finally {
       setLoading(false);
@@ -332,7 +346,8 @@ export default function CreateTrip() {
               color: '#4a90e2',
               cursor: 'pointer',
               fontSize: '1rem',
-              textDecoration: 'underline'
+              textDecoration: 'underline',
+              whiteSpace: 'nowrap'
             }}
           >
             查看我的行程

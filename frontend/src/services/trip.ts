@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:8080/api/v1';
+const API_URL = 'http://localhost:8081/api/v1';
 
 export interface CreateTripRequest {
   destination: string;
@@ -22,6 +22,10 @@ export interface ItineraryItem {
   description: string;
   estimatedCost: number;
   notes?: string;
+  coordinates?: {
+    lng: number;
+    lat: number;
+  };
 }
 
 export interface BudgetSummary {
@@ -58,6 +62,7 @@ export async function createTrip(data: CreateTripRequest): Promise<Trip> {
   if (!token) {
     throw new Error('未登录，请先登录');
   }
+  
   const response = await axios.post(`${API_URL}/trips`, data, {
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -113,4 +118,54 @@ export async function deleteTrip(id: number): Promise<void> {
       'Authorization': `Bearer ${token}`
     }
   });
+}
+
+/**
+ * 更新行程信息
+ */
+export async function updateTrip(id: number, data: Partial<Trip>): Promise<Trip> {
+  const token = localStorage.getItem('auth_token');
+  if (!token) {
+    throw new Error('未登录，请先登录');
+  }
+  const response = await axios.put(`${API_URL}/trips/${id}`, data, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    }
+  });
+  return response.data;
+}
+
+/**
+ * 更新行程项
+ */
+export async function updateItineraryItem(tripId: number, itemIndex: number, data: Partial<ItineraryItem>): Promise<Trip> {
+  const token = localStorage.getItem('auth_token');
+  if (!token) {
+    throw new Error('未登录，请先登录');
+  }
+  const response = await axios.put(`${API_URL}/trips/${tripId}/itinerary/${itemIndex}`, data, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    }
+  });
+  return response.data;
+}
+
+/**
+ * 删除行程项
+ */
+export async function deleteItineraryItem(tripId: number, itemIndex: number): Promise<Trip> {
+  const token = localStorage.getItem('auth_token');
+  if (!token) {
+    throw new Error('未登录，请先登录');
+  }
+  const response = await axios.delete(`${API_URL}/trips/${tripId}/itinerary/${itemIndex}`, {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+  return response.data;
 }
