@@ -9,7 +9,7 @@ on:
 
 env:
   # 阿里云镜像仓库配置
-  ALIYUN_REGISTRY: registry.cn-hangzhou.aliyuncs.com
+  ALIYUN_REGISTRY: crpi-jv0j90azipje1hry.cn-hangzhou.personal.cr.aliyuncs.com
   ALIYUN_NAMESPACE: travelplanner  # 你的阿里云命名空间名称(需要修改为实际创建的命名空间)
   BACKEND_IMAGE_NAME: ai-travel-backend
   FRONTEND_IMAGE_NAME: ai-travel-frontend
