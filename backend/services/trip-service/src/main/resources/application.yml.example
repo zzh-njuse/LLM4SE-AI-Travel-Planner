@@ -1,0 +1,53 @@
+# AI Travel Planner - 配置示例文件
+# 复制此文件为 application.yml 并填入你的实际配置
+
+spring:
+  application:
+    name: trip-service
+  
+  datasource:
+    # === 本地开发 ===
+    # url: jdbc:postgresql://localhost:5432/travel
+    # username: postgres
+    # password: postgres
+    
+    # === Supabase 云端 ===
+    # 从 Supabase Settings → Database → Connection string → JDBC 复制
+    # 格式: jdbc:postgresql://[HOST]:[PORT]/postgres?user=postgres.[PROJECT-REF]&password=[PASSWORD]
+    url: jdbc:postgresql://aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres?user=postgres.xxxxxxxxxxxx&password=[YOUR-PASSWORD]
+    
+    # 或者分开配置:
+    # url: jdbc:postgresql://aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres
+    # username: postgres.xxxxxxxxxxxx
+    # password: [YOUR-PASSWORD]
+    
+    driver-class-name: org.postgresql.Driver
+  
+  jpa:
+    hibernate:
+      ddl-auto: update  # 首次运行后改为 validate
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+    open-in-view: false
+
+server:
+  port: 8081
+
+# 阿里云通义千问 API 配置
+qwen:
+  api:
+    key: [YOUR-QWEN-API-KEY]  # 从 https://dashscope.aliyun.com/ 获取
+    url: https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation
+  model: qwen-turbo
+
+# 高德地图 API 配置
+amap:
+  api:
+    key: [YOUR-AMAP-WEB-SERVICE-KEY]  # 从 https://console.amap.com/dev/key/app 获取 "Web服务" 类型的 Key
+
+logging:
+  level:
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE

@@ -12,6 +12,10 @@ target/
 .env.local
 .env.*.local
 
+# Configuration files with secrets
+**/application.yml
+!**/application.yml.example
+
 # Vscode
 .vscode/
 
