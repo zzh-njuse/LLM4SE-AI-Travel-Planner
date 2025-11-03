@@ -33,7 +33,8 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:8081/api/v1/health || exit 1
 
 # 启动应用
-# 支持通过环境变量覆盖配置
+# 使用 prod profile,所有配置从环境变量读取
 ENTRYPOINT ["java", \
     "-Djava.security.egd=file:/dev/./urandom", \
+    "-Dspring.profiles.active=prod", \
     "-jar", "app.jar"]
