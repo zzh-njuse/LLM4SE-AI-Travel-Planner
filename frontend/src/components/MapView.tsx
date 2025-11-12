@@ -6,6 +6,8 @@ interface MapLocation {
   lat: number;
   name: string;
   type?: 'hotel' | 'attraction' | 'restaurant' | 'other';
+  id?: number; // 添加唯一 ID，支持重复地点
+  dayIndex?: number; // 记录是第几天
 }
 
 interface MapViewProps {
@@ -136,7 +138,7 @@ const MapView: React.FC<MapViewProps> = ({
     }
 
     // 创建新标记
-    const markers = validLocations.map((location, index) => {
+    const markers = validLocations.map((location) => {
       const icon = getMarkerIcon(location.type);
       
       // 先验证坐标再创建 Marker
@@ -150,7 +152,7 @@ const MapView: React.FC<MapViewProps> = ({
         title: location.name,
         icon: icon,
         label: {
-          content: `<div style="background: white; padding: 4px 8px; border-radius: 4px; border: 1px solid #ccc; font-size: 12px;">${index + 1}. ${location.name}</div>`,
+          content: `<div style="background: white; padding: 4px 8px; border-radius: 4px; border: 1px solid #ccc; font-size: 12px;">${location.name}</div>`,
           direction: 'top'
         }
       });
@@ -164,6 +166,7 @@ const MapView: React.FC<MapViewProps> = ({
             <h3 style="margin: 0 0 8px 0; font-size: 16px;">${location.name}</h3>
             <p style="margin: 0; color: #666;">经度: ${location.lng.toFixed(6)}</p>
             <p style="margin: 4px 0 0 0; color: #666;">纬度: ${location.lat.toFixed(6)}</p>
+            ${location.dayIndex !== undefined ? `<p style="margin: 4px 0 0 0; color: #666;">第 ${location.dayIndex} 天</p>` : ''}
           </div>`
         });
         infoWindow.open(mapRef.current, [location.lng, location.lat]);
@@ -196,20 +199,39 @@ const MapView: React.FC<MapViewProps> = ({
   };
 
   const drawRoute = async () => {
-    if (!mapRef.current || locations.length < 2) return;
+    if (!mapRef.current || locations.length < 2) {
+      console.warn('无法绘制路线：位置数据不足或地图未加载');
+      return;
+    }
 
     const AMap = (window as any).AMap;
+    
+    console.log('开始绘制路线，总位置数:', locations.length);
+    console.log('原始位置数据:', locations);
 
     // 过滤掉无效的坐标
-    const validLocations = locations.filter(loc => 
-      loc && 
-      typeof loc.lng === 'number' && 
-      typeof loc.lat === 'number' && 
-      !isNaN(loc.lng) && 
-      !isNaN(loc.lat) &&
-      loc.lng >= -180 && loc.lng <= 180 &&
-      loc.lat >= -90 && loc.lat <= 90
-    );
+    const validLocations = locations.filter(loc => {
+      if (!loc) {
+        console.warn('位置为空');
+        return false;
+      }
+      if (typeof loc.lng !== 'number' || typeof loc.lat !== 'number') {
+        console.warn('坐标类型错误:', loc);
+        return false;
+      }
+      if (isNaN(loc.lng) || isNaN(loc.lat)) {
+        console.warn('坐标是 NaN:', loc);
+        return false;
+      }
+      if (loc.lng < -180 || loc.lng > 180 || loc.lat < -90 || loc.lat > 90) {
+        console.warn('坐标超出范围:', loc);
+        return false;
+      }
+      return true;
+    });
+
+    console.log('有效位置数:', validLocations.length);
+    console.log('有效位置数据:', validLocations);
 
     if (validLocations.length < 2) {
       console.warn('没有足够的有效位置数据来绘制路线(需要至少2个点)');
@@ -232,7 +254,11 @@ const MapView: React.FC<MapViewProps> = ({
         if (status === 'complete') {
           console.log('路线规划成功', result);
         } else {
-          console.error('路线规划失败');
+          console.error('路线规划失败，状态:', status, '结果:', result);
+          // 添加调试信息
+          if (result && result.info) {
+            console.error('错误信息:', result.info);
+          }
         }
       });
     } catch (err) {

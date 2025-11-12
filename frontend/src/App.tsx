@@ -6,6 +6,7 @@ import CreateTrip from './pages/CreateTrip'
 import TripList from './pages/TripList'
 import TripDetail from './pages/TripDetail'
 import { tokenStorage } from './services/auth'
+import { saveAmapConfig } from './services/amap'
 
 // Protected Route Component
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -83,6 +84,35 @@ function Header() {
 }
 
 export default function App() {
+  useEffect(() => {
+    // 初始化高德地图配置
+    initAmapConfig();
+  }, []);
+
+  const initAmapConfig = async () => {
+    try {
+      const response = await fetch('http://localhost:8080/api/v1/config/amap');
+      if (!response.ok) {
+        console.warn('获取高德地图配置失败');
+        return;
+      }
+      const data = await response.json();
+      // 优先使用 Web Service Key（支持路线规划），否则使用普通 Key
+      const key = data.webServiceKey || data.key;
+      const securityJsCode = data.securityJsCode;
+      
+      if (key) {
+        saveAmapConfig({ 
+          key,
+          securityJsCode: securityJsCode || undefined
+        });
+        console.log('✅ 高德地图配置已初始化');
+      }
+    } catch (error) {
+      console.error('初始化高德地图配置失败:', error);
+    }
+  };
+
   return (
     <HashRouter>
       <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa' }}>

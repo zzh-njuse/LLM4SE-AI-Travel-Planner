@@ -169,3 +169,20 @@ export async function deleteItineraryItem(tripId: number, itemIndex: number): Pr
   });
   return response.data;
 }
+
+/**
+ * 添加行程项
+ */
+export async function addItineraryItem(tripId: number, data: ItineraryItem): Promise<Trip> {
+  const token = localStorage.getItem('auth_token');
+  if (!token) {
+    throw new Error('未登录，请先登录');
+  }
+  const response = await axios.post(`${API_URL}/trips/${tripId}/itinerary`, data, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    }
+  });
+  return response.data;
+}

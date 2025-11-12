@@ -32,8 +32,8 @@ public class TripController {
      * 健康检查
      */
     @GetMapping("/api/v1/health")
-    public Map<String,String> health() {
-        return Map.of("status","ok","service","trip-service");
+    public Map<String, String> health() {
+        return Map.of("status", "ok", "service", "trip-service");
     }
 
     /**
@@ -44,14 +44,14 @@ public class TripController {
             @RequestHeader(value = "Authorization", required = false) String authHeader,
             @RequestBody CreateTripRequest request) {
         try {
-            logger.info("收到创建行程请求: destination={}, startDate={}, endDate={}", 
-                request.getDestination(), request.getStartDate(), request.getEndDate());
-            
+            logger.info("收到创建行程请求: destination={}, startDate={}, endDate={}",
+                    request.getDestination(), request.getStartDate(), request.getEndDate());
+
             // 检查 Authorization header
             if (authHeader == null || authHeader.isEmpty()) {
                 logger.warn("缺少 Authorization header");
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "缺少访问令牌"));
+                        .body(Map.of("error", "缺少访问令牌"));
             }
 
             // 验证 JWT 并获取用户 ID
@@ -59,22 +59,22 @@ public class TripController {
             if (!jwtUtil.validateToken(token)) {
                 logger.warn("无效的 JWT token");
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "无效的访问令牌"));
+                        .body(Map.of("error", "无效的访问令牌"));
             }
 
             Long userId = jwtUtil.getUserIdFromToken(token);
             logger.info("用户 {} 创建行程", userId);
-            
+
             // 调用服务生成行程
             TripResponse response = tripService.createAndGenerateTrip(userId, request);
-            
+
             logger.info("行程创建成功: tripId={}", response.getId());
             return ResponseEntity.ok(response);
-            
+
         } catch (Exception e) {
             logger.error("创建行程失败", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Map.of("error", "创建行程失败：" + e.getMessage()));
+                    .body(Map.of("error", "创建行程失败：" + e.getMessage()));
         }
     }
 
@@ -87,25 +87,25 @@ public class TripController {
         try {
             if (authHeader == null || authHeader.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "缺少访问令牌"));
+                        .body(Map.of("error", "缺少访问令牌"));
             }
 
             String token = authHeader.replace("Bearer ", "");
             if (!jwtUtil.validateToken(token)) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "无效的访问令牌"));
+                        .body(Map.of("error", "无效的访问令牌"));
             }
 
             Long userId = jwtUtil.getUserIdFromToken(token);
-            
+
             List<TripResponse> trips = tripService.getUserTrips(userId);
-            
+
             return ResponseEntity.ok(trips);
-            
+
         } catch (Exception e) {
             logger.error("获取行程列表失败", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Map.of("error", "获取行程列表失败：" + e.getMessage()));
+                    .body(Map.of("error", "获取行程列表失败：" + e.getMessage()));
         }
     }
 
@@ -119,32 +119,32 @@ public class TripController {
         try {
             if (authHeader == null || authHeader.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "缺少访问令牌"));
+                        .body(Map.of("error", "缺少访问令牌"));
             }
 
             String token = authHeader.replace("Bearer ", "");
             if (!jwtUtil.validateToken(token)) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "无效的访问令牌"));
+                        .body(Map.of("error", "无效的访问令牌"));
             }
 
             Long userId = jwtUtil.getUserIdFromToken(token);
-            
+
             TripResponse trip = tripService.getTripDetail(id, userId);
-            
+
             return ResponseEntity.ok(trip);
-            
+
         } catch (RuntimeException e) {
             logger.error("获取行程详情失败", e);
             if (e.getMessage().contains("不存在")) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", e.getMessage()));
+                        .body(Map.of("error", e.getMessage()));
             } else if (e.getMessage().contains("无权")) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("error", e.getMessage()));
+                        .body(Map.of("error", e.getMessage()));
             }
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Map.of("error", "获取行程详情失败：" + e.getMessage()));
+                    .body(Map.of("error", "获取行程详情失败：" + e.getMessage()));
         }
     }
 
@@ -158,32 +158,32 @@ public class TripController {
         try {
             if (authHeader == null || authHeader.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "缺少访问令牌"));
+                        .body(Map.of("error", "缺少访问令牌"));
             }
 
             String token = authHeader.replace("Bearer ", "");
             if (!jwtUtil.validateToken(token)) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "无效的访问令牌"));
+                        .body(Map.of("error", "无效的访问令牌"));
             }
 
             Long userId = jwtUtil.getUserIdFromToken(token);
-            
+
             tripService.deleteTrip(id, userId);
-            
+
             return ResponseEntity.ok().build();
-            
+
         } catch (RuntimeException e) {
             logger.error("删除行程失败", e);
             if (e.getMessage().contains("不存在")) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", e.getMessage()));
+                        .body(Map.of("error", e.getMessage()));
             } else if (e.getMessage().contains("无权")) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("error", e.getMessage()));
+                        .body(Map.of("error", e.getMessage()));
             }
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Map.of("error", "删除行程失败：" + e.getMessage()));
+                    .body(Map.of("error", "删除行程失败：" + e.getMessage()));
         }
     }
 
@@ -198,32 +198,32 @@ public class TripController {
         try {
             if (authHeader == null || authHeader.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "缺少访问令牌"));
+                        .body(Map.of("error", "缺少访问令牌"));
             }
 
             String token = authHeader.replace("Bearer ", "");
             if (!jwtUtil.validateToken(token)) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "无效的访问令牌"));
+                        .body(Map.of("error", "无效的访问令牌"));
             }
 
             Long userId = jwtUtil.getUserIdFromToken(token);
-            
+
             TripResponse updated = tripService.updateTrip(id, userId, updateData);
-            
+
             return ResponseEntity.ok(updated);
-            
+
         } catch (RuntimeException e) {
             logger.error("更新行程失败", e);
             if (e.getMessage().contains("不存在")) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", e.getMessage()));
+                        .body(Map.of("error", e.getMessage()));
             } else if (e.getMessage().contains("无权")) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("error", e.getMessage()));
+                        .body(Map.of("error", e.getMessage()));
             }
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Map.of("error", "更新行程失败：" + e.getMessage()));
+                    .body(Map.of("error", "更新行程失败：" + e.getMessage()));
         }
     }
 
@@ -239,32 +239,72 @@ public class TripController {
         try {
             if (authHeader == null || authHeader.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "缺少访问令牌"));
+                        .body(Map.of("error", "缺少访问令牌"));
             }
 
             String token = authHeader.replace("Bearer ", "");
             if (!jwtUtil.validateToken(token)) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "无效的访问令牌"));
+                        .body(Map.of("error", "无效的访问令牌"));
             }
 
             Long userId = jwtUtil.getUserIdFromToken(token);
-            
+
             TripResponse updated = tripService.updateItineraryItem(id, userId, itemIndex, updateData);
-            
+
             return ResponseEntity.ok(updated);
-            
+
         } catch (RuntimeException e) {
             logger.error("更新行程项失败", e);
             if (e.getMessage().contains("不存在") || e.getMessage().contains("索引")) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", e.getMessage()));
+                        .body(Map.of("error", e.getMessage()));
             } else if (e.getMessage().contains("无权")) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("error", e.getMessage()));
+                        .body(Map.of("error", e.getMessage()));
             }
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Map.of("error", "更新行程项失败：" + e.getMessage()));
+                    .body(Map.of("error", "更新行程项失败：" + e.getMessage()));
+        }
+    }
+
+    /**
+     * 添加行程项
+     */
+    @PostMapping("/api/v1/trips/{id}/itinerary")
+    public ResponseEntity<?> addItineraryItem(
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> itemData) {
+        try {
+            if (authHeader == null || authHeader.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "缺少访问令牌"));
+            }
+
+            String token = authHeader.replace("Bearer ", "");
+            if (!jwtUtil.validateToken(token)) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "无效的访问令牌"));
+            }
+
+            Long userId = jwtUtil.getUserIdFromToken(token);
+
+            TripResponse updated = tripService.addItineraryItem(id, userId, itemData);
+
+            return ResponseEntity.ok(updated);
+
+        } catch (RuntimeException e) {
+            logger.error("添加行程项失败", e);
+            if (e.getMessage().contains("不存在")) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(Map.of("error", e.getMessage()));
+            } else if (e.getMessage().contains("无权")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", e.getMessage()));
+            }
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "添加行程项失败：" + e.getMessage()));
         }
     }
 
@@ -279,32 +319,32 @@ public class TripController {
         try {
             if (authHeader == null || authHeader.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "缺少访问令牌"));
+                        .body(Map.of("error", "缺少访问令牌"));
             }
 
             String token = authHeader.replace("Bearer ", "");
             if (!jwtUtil.validateToken(token)) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "无效的访问令牌"));
+                        .body(Map.of("error", "无效的访问令牌"));
             }
 
             Long userId = jwtUtil.getUserIdFromToken(token);
-            
+
             TripResponse updated = tripService.deleteItineraryItem(id, userId, itemIndex);
-            
+
             return ResponseEntity.ok(updated);
-            
+
         } catch (RuntimeException e) {
             logger.error("删除行程项失败", e);
             if (e.getMessage().contains("不存在") || e.getMessage().contains("索引")) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", e.getMessage()));
+                        .body(Map.of("error", e.getMessage()));
             } else if (e.getMessage().contains("无权")) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("error", e.getMessage()));
+                        .body(Map.of("error", e.getMessage()));
             }
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Map.of("error", "删除行程项失败：" + e.getMessage()));
+                    .body(Map.of("error", "删除行程项失败：" + e.getMessage()));
         }
     }
 }

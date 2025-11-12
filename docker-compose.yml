@@ -18,8 +18,10 @@ services:
       # 阿里云通义千问 API
       - QWEN_API_KEY=${QWEN_API_KEY}
       
-      # 高德地图 API
+      # 高德地图 API (多个 Key)
       - AMAP_API_KEY=${AMAP_API_KEY}
+      - AMAP_WEB_SERVICE_KEY=${AMAP_WEB_SERVICE_KEY}
+      - AMAP_SECURITY_JS_CODE=${AMAP_SECURITY_JS_CODE}
       
       # 科大讯飞语音识别 API
       - XFYUN_API_APPID=${XFYUN_APPID}

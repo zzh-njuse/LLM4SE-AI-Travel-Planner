@@ -33,6 +33,8 @@ qwen:
 amap:
   api:
     key: ${AMAP_API_KEY:}
+    web-service-key: ${AMAP_WEB_SERVICE_KEY:}
+    security-js-code: ${AMAP_SECURITY_JS_CODE:}
 
 # 科大讯飞语音识别 API 配置
 xfyun:

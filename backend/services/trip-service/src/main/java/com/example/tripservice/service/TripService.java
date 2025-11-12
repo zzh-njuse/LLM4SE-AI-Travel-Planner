@@ -16,8 +16,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 行程服务
@@ -59,10 +61,10 @@ public class TripService {
         trip.setBudget(request.getBudget());
         trip.setRawInput(request.getRawInput());
         trip.setStatus("generating");
-        
+
         // 设置临时标题（AI 生成后会更新）
         trip.setTitle("生成中：" + request.getDestination() + "之旅");
-        
+
         if (request.getPreferences() != null && !request.getPreferences().isEmpty()) {
             try {
                 trip.setPreferences(objectMapper.writeValueAsString(request.getPreferences()));
@@ -85,7 +87,7 @@ public class TripService {
 
             // 4. 解析生成结果
             JsonNode resultNode = objectMapper.readTree(generatedJson);
-            
+
             // 更新标题
             String title = resultNode.path("title").asText();
             if (title != null && !title.isEmpty()) {
@@ -95,34 +97,33 @@ public class TripService {
             // 5. 保存行程项
             List<ItineraryItem> items = new ArrayList<>();
             JsonNode daysNode = resultNode.path("days");
-            
+
             for (JsonNode dayNode : daysNode) {
                 int dayIndex = dayNode.path("dayIndex").asInt();
                 JsonNode itemsNode = dayNode.path("items");
-                
+
                 for (JsonNode itemNode : itemsNode) {
                     ItineraryItem item = new ItineraryItem();
                     item.setTripId(trip.getId());
                     item.setDayIndex(dayIndex);
-                    
+
                     // 解析时间
                     String startTimeStr = itemNode.path("startTime").asText();
                     String endTimeStr = itemNode.path("endTime").asText();
                     item.setStartTime(java.time.LocalTime.parse(startTimeStr));
                     item.setEndTime(java.time.LocalTime.parse(endTimeStr));
-                    
+
                     item.setTitle(itemNode.path("title").asText());
                     item.setType(itemNode.path("type").asText().toLowerCase());
                     item.setLocation(itemNode.path("location").asText());
                     item.setDescription(itemNode.path("description").asText());
                     item.setEstimatedCost(BigDecimal.valueOf(
-                        itemNode.path("estimatedCost").asDouble()
-                    ));
-                    
+                            itemNode.path("estimatedCost").asDouble()));
+
                     if (itemNode.has("notes")) {
                         item.setNotes(itemNode.path("notes").asText());
                     }
-                    
+
                     // 自动获取地理坐标
                     String location = item.getLocation();
                     if (location != null && !location.isEmpty()) {
@@ -132,24 +133,23 @@ public class TripService {
                             logger.debug("已获取坐标: {} -> {}", location, coordinates);
                         }
                     }
-                    
+
                     items.add(item);
                 }
             }
-            
+
             itineraryItemRepository.saveAll(items);
             logger.info("已保存 {} 个行程项", items.size());
 
             // 6. 更新行程状态和预算信息
             JsonNode budgetNode = resultNode.path("budgetBreakdown");
             BigDecimal estimatedCost = BigDecimal.valueOf(
-                budgetNode.path("transport").asDouble() +
-                budgetNode.path("accommodation").asDouble() +
-                budgetNode.path("food").asDouble() +
-                budgetNode.path("attractions").asDouble() +
-                budgetNode.path("other").asDouble()
-            );
-            
+                    budgetNode.path("transport").asDouble() +
+                            budgetNode.path("accommodation").asDouble() +
+                            budgetNode.path("food").asDouble() +
+                            budgetNode.path("attractions").asDouble() +
+                            budgetNode.path("other").asDouble());
+
             trip.setStatus("generated");
             trip = tripRepository.save(trip);
 
@@ -172,19 +172,19 @@ public class TripService {
     public List<TripResponse> getUserTrips(Long userId) {
         List<Trip> trips = tripRepository.findByUserIdOrderByCreatedAtDesc(userId);
         List<TripResponse> responses = new ArrayList<>();
-        
+
         for (Trip trip : trips) {
             List<ItineraryItem> items = itineraryItemRepository
-                .findByTripIdOrderByDayIndexAscStartTimeAsc(trip.getId());
-            
+                    .findByTripIdOrderByDayIndexAscStartTimeAsc(trip.getId());
+
             // 计算预算信息
             BigDecimal totalCost = items.stream()
-                .map(ItineraryItem::getEstimatedCost)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-            
+                    .map(ItineraryItem::getEstimatedCost)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
             responses.add(buildSimpleTripResponse(trip, totalCost));
         }
-        
+
         return responses;
     }
 
@@ -193,15 +193,15 @@ public class TripService {
      */
     public TripResponse getTripDetail(Long tripId, Long userId) {
         Trip trip = tripRepository.findById(tripId)
-            .orElseThrow(() -> new RuntimeException("行程不存在"));
-        
+                .orElseThrow(() -> new RuntimeException("行程不存在"));
+
         if (!trip.getUserId().equals(userId)) {
             throw new RuntimeException("无权访问此行程");
         }
-        
+
         List<ItineraryItem> items = itineraryItemRepository
-            .findByTripIdOrderByDayIndexAscStartTimeAsc(tripId);
-        
+                .findByTripIdOrderByDayIndexAscStartTimeAsc(tripId);
+
         return buildDetailedTripResponse(trip, items);
     }
 
@@ -211,12 +211,12 @@ public class TripService {
     @Transactional
     public void deleteTrip(Long tripId, Long userId) {
         Trip trip = tripRepository.findById(tripId)
-            .orElseThrow(() -> new RuntimeException("行程不存在"));
-        
+                .orElseThrow(() -> new RuntimeException("行程不存在"));
+
         if (!trip.getUserId().equals(userId)) {
             throw new RuntimeException("无权删除此行程");
         }
-        
+
         itineraryItemRepository.deleteByTripId(tripId);
         tripRepository.delete(trip);
         logger.info("已删除行程 {}", tripId);
@@ -228,12 +228,12 @@ public class TripService {
     @Transactional
     public TripResponse updateTrip(Long tripId, Long userId, TripResponse updateData) {
         Trip trip = tripRepository.findById(tripId)
-            .orElseThrow(() -> new RuntimeException("行程不存在"));
-        
+                .orElseThrow(() -> new RuntimeException("行程不存在"));
+
         if (!trip.getUserId().equals(userId)) {
             throw new RuntimeException("无权修改此行程");
         }
-        
+
         // 更新基本信息
         if (updateData.getTitle() != null) {
             trip.setTitle(updateData.getTitle());
@@ -245,10 +245,10 @@ public class TripService {
             BigDecimal totalBudget = updateData.getBudgetSummary().getTotalBudget();
             trip.setBudget(totalBudget);
         }
-        
+
         trip = tripRepository.save(trip);
         logger.info("已更新行程 {}", tripId);
-        
+
         return getTripDetail(tripId, userId);
     }
 
@@ -256,22 +256,23 @@ public class TripService {
      * 更新行程项
      */
     @Transactional
-    public TripResponse updateItineraryItem(Long tripId, Long userId, int itemIndex, java.util.Map<String, Object> updateData) {
+    public TripResponse updateItineraryItem(Long tripId, Long userId, int itemIndex,
+            java.util.Map<String, Object> updateData) {
         Trip trip = tripRepository.findById(tripId)
-            .orElseThrow(() -> new RuntimeException("行程不存在"));
-        
+                .orElseThrow(() -> new RuntimeException("行程不存在"));
+
         if (!trip.getUserId().equals(userId)) {
             throw new RuntimeException("无权修改此行程");
         }
-        
+
         List<ItineraryItem> items = itineraryItemRepository.findByTripIdOrderByDayIndexAscStartTimeAsc(tripId);
-        
+
         if (itemIndex < 0 || itemIndex >= items.size()) {
             throw new RuntimeException("行程项索引无效");
         }
-        
+
         ItineraryItem item = items.get(itemIndex);
-        
+
         // 更新字段
         if (updateData.containsKey("title")) {
             item.setTitle((String) updateData.get("title"));
@@ -299,10 +300,10 @@ public class TripService {
         if (updateData.containsKey("notes")) {
             item.setNotes((String) updateData.get("notes"));
         }
-        
+
         itineraryItemRepository.save(item);
         logger.info("已更新行程项: tripId={}, itemIndex={}", tripId, itemIndex);
-        
+
         return getTripDetail(tripId, userId);
     }
 
@@ -312,22 +313,84 @@ public class TripService {
     @Transactional
     public TripResponse deleteItineraryItem(Long tripId, Long userId, int itemIndex) {
         Trip trip = tripRepository.findById(tripId)
-            .orElseThrow(() -> new RuntimeException("行程不存在"));
-        
+                .orElseThrow(() -> new RuntimeException("行程不存在"));
+
         if (!trip.getUserId().equals(userId)) {
             throw new RuntimeException("无权修改此行程");
         }
-        
+
         List<ItineraryItem> items = itineraryItemRepository.findByTripIdOrderByDayIndexAscStartTimeAsc(tripId);
-        
+
         if (itemIndex < 0 || itemIndex >= items.size()) {
             throw new RuntimeException("行程项索引无效");
         }
-        
+
         ItineraryItem itemToDelete = items.get(itemIndex);
         itineraryItemRepository.delete(itemToDelete);
         logger.info("已删除行程项: tripId={}, itemIndex={}", tripId, itemIndex);
-        
+
+        return getTripDetail(tripId, userId);
+    }
+
+    /**
+     * 添加行程项
+     */
+    @Transactional
+    public TripResponse addItineraryItem(Long tripId, Long userId, Map<String, Object> itemData) {
+        Trip trip = tripRepository.findById(tripId)
+                .orElseThrow(() -> new RuntimeException("行程不存在"));
+
+        if (!trip.getUserId().equals(userId)) {
+            throw new RuntimeException("无权修改此行程");
+        }
+
+        ItineraryItem newItem = new ItineraryItem();
+        newItem.setTripId(tripId);
+        newItem.setDayIndex(((Number) itemData.get("dayIndex")).intValue());
+
+        // 处理时间 - 从字符串转换为 LocalTime
+        String startTimeStr = (String) itemData.get("startTime");
+        if (startTimeStr != null && !startTimeStr.isEmpty()) {
+            newItem.setStartTime(LocalTime.parse(startTimeStr));
+        }
+
+        String endTimeStr = (String) itemData.get("endTime");
+        if (endTimeStr != null && !endTimeStr.isEmpty()) {
+            newItem.setEndTime(LocalTime.parse(endTimeStr));
+        }
+
+        newItem.setTitle((String) itemData.get("title"));
+        newItem.setType((String) itemData.get("type"));
+        newItem.setLocation((String) itemData.get("location"));
+        newItem.setDescription((String) itemData.getOrDefault("description", ""));
+        newItem.setNotes((String) itemData.getOrDefault("notes", ""));
+
+        // 处理成本
+        Object estimatedCostObj = itemData.get("estimatedCost");
+        if (estimatedCostObj != null) {
+            newItem.setEstimatedCost(new BigDecimal(estimatedCostObj.toString()));
+        } else {
+            newItem.setEstimatedCost(BigDecimal.ZERO);
+        }
+
+        // 处理坐标（如果用户提供了地址，则进行地理编码）
+        String location = (String) itemData.get("location");
+        if (location != null && !location.isEmpty()) {
+            try {
+                String coordinatesJson = amapGeocodingService.geocodeAddress(location);
+                if (coordinatesJson != null) {
+                    newItem.setCoordinates(coordinatesJson);
+                    logger.info("地址 '{}' 地理编码成功: {}", location, coordinatesJson);
+                }
+            } catch (Exception e) {
+                logger.warn("地址 '{}' 地理编码失败: {}", location, e.getMessage());
+            }
+        }
+
+        itineraryItemRepository.save(newItem);
+        logger.info("已添加行程项: tripId={}, dayIndex={}, title={}",
+                tripId, newItem.getDayIndex(), newItem.getTitle());
+
         return getTripDetail(tripId, userId);
     }
 
@@ -335,21 +398,21 @@ public class TripService {
 
     private String buildPrompt(CreateTripRequest request) {
         StringBuilder prompt = new StringBuilder();
-        
+
         if (request.getRawInput() != null && !request.getRawInput().isEmpty()) {
             prompt.append(request.getRawInput()).append("\n\n");
         }
-        
+
         prompt.append("目的地：").append(request.getDestination()).append("\n");
         prompt.append("出发日期：").append(request.getStartDate()).append("\n");
         prompt.append("返回日期：").append(request.getEndDate()).append("\n");
         prompt.append("人数：").append(request.getParticipants()).append(" 人\n");
         prompt.append("预算：").append(request.getBudget()).append(" 元\n");
-        
+
         if (request.getPreferences() != null && !request.getPreferences().isEmpty()) {
             prompt.append("偏好：").append(request.getPreferences()).append("\n");
         }
-        
+
         return prompt.toString();
     }
 
@@ -363,16 +426,16 @@ public class TripService {
         response.setParticipants(trip.getParticipants());
         response.setStatus(trip.getStatus());
         response.setCreatedAt(trip.getCreatedAt());
-        
+
         // 预算摘要
         TripResponse.BudgetSummary budget = new TripResponse.BudgetSummary();
         BigDecimal totalCost = items.stream()
-            .map(ItineraryItem::getEstimatedCost)
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
+                .map(ItineraryItem::getEstimatedCost)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
         budget.setTotalBudget(trip.getBudget());
         budget.setEstimatedCost(totalCost);
         budget.setRemaining(trip.getBudget().subtract(totalCost));
-        
+
         // 分类预算
         TripResponse.CategoryBreakdown breakdown = new TripResponse.CategoryBreakdown();
         breakdown.setTransport(BigDecimal.valueOf(budgetNode.path("transport").asDouble()));
@@ -381,16 +444,16 @@ public class TripService {
         breakdown.setAttractions(BigDecimal.valueOf(budgetNode.path("attractions").asDouble()));
         breakdown.setOther(BigDecimal.valueOf(budgetNode.path("other").asDouble()));
         budget.setBreakdown(breakdown);
-        
+
         response.setBudgetSummary(budget);
-        
+
         // 行程项
         List<ItineraryItemDto> itemDtos = new ArrayList<>();
         for (ItineraryItem item : items) {
             itemDtos.add(toDto(item));
         }
         response.setItinerary(itemDtos);
-        
+
         return response;
     }
 
@@ -404,13 +467,13 @@ public class TripService {
         response.setParticipants(trip.getParticipants());
         response.setStatus(trip.getStatus());
         response.setCreatedAt(trip.getCreatedAt());
-        
+
         TripResponse.BudgetSummary budget = new TripResponse.BudgetSummary();
         budget.setTotalBudget(trip.getBudget());
         budget.setEstimatedCost(totalCost);
         budget.setRemaining(trip.getBudget().subtract(totalCost));
         response.setBudgetSummary(budget);
-        
+
         return response;
     }
 
@@ -424,17 +487,17 @@ public class TripService {
         response.setParticipants(trip.getParticipants());
         response.setStatus(trip.getStatus());
         response.setCreatedAt(trip.getCreatedAt());
-        
+
         // 计算预算
         BigDecimal totalCost = items.stream()
-            .map(ItineraryItem::getEstimatedCost)
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
-        
+                .map(ItineraryItem::getEstimatedCost)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
         TripResponse.BudgetSummary budget = new TripResponse.BudgetSummary();
         budget.setTotalBudget(trip.getBudget());
         budget.setEstimatedCost(totalCost);
         budget.setRemaining(trip.getBudget().subtract(totalCost));
-        
+
         // 分类统计
         TripResponse.CategoryBreakdown breakdown = new TripResponse.CategoryBreakdown();
         breakdown.setTransport(calculateCategoryTotal(items, "transport"));
@@ -443,23 +506,23 @@ public class TripService {
         breakdown.setAttractions(calculateCategoryTotal(items, "attraction"));
         breakdown.setOther(calculateCategoryTotal(items, "other"));
         budget.setBreakdown(breakdown);
-        
+
         response.setBudgetSummary(budget);
-        
+
         List<ItineraryItemDto> itemDtos = new ArrayList<>();
         for (ItineraryItem item : items) {
             itemDtos.add(toDto(item));
         }
         response.setItinerary(itemDtos);
-        
+
         return response;
     }
 
     private BigDecimal calculateCategoryTotal(List<ItineraryItem> items, String type) {
         return items.stream()
-            .filter(item -> type.equals(item.getType()))
-            .map(ItineraryItem::getEstimatedCost)
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
+                .filter(item -> type.equals(item.getType()))
+                .map(ItineraryItem::getEstimatedCost)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     private ItineraryItemDto toDto(ItineraryItem item) {
@@ -474,7 +537,7 @@ public class TripService {
         dto.setDescription(item.getDescription());
         dto.setEstimatedCost(item.getEstimatedCost());
         dto.setNotes(item.getNotes());
-        
+
         // 解析坐标 JSON 字符串
         if (item.getCoordinates() != null && !item.getCoordinates().isEmpty()) {
             try {
@@ -482,10 +545,10 @@ public class TripService {
                 String coordStr = item.getCoordinates();
                 coordStr = coordStr.replace("{", "").replace("}", "").replace("\"", "");
                 String[] parts = coordStr.split(",");
-                
+
                 Double lng = null;
                 Double lat = null;
-                
+
                 for (String part : parts) {
                     String[] kv = part.split(":");
                     if (kv.length == 2) {
@@ -498,7 +561,7 @@ public class TripService {
                         }
                     }
                 }
-                
+
                 if (lng != null && lat != null) {
                     dto.setCoordinates(new ItineraryItemDto.Coordinates(lng, lat));
                 }
@@ -507,7 +570,7 @@ public class TripService {
                 System.err.println("Failed to parse coordinates: " + item.getCoordinates());
             }
         }
-        
+
         return dto;
     }
 }

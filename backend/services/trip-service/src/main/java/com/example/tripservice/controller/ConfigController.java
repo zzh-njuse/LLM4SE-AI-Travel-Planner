@@ -2,6 +2,7 @@ package com.example.tripservice.controller;
 
 import com.example.tripservice.config.XFYunConfig;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -17,6 +18,15 @@ public class ConfigController {
     @Autowired
     private XFYunConfig xfyunConfig;
 
+    @Value("${amap.api.key:}")
+    private String amapApiKey;
+
+    @Value("${amap.api.web-service-key:}")
+    private String amapWebServiceKey;
+
+    @Value("${amap.api.security-js-code:}")
+    private String amapSecurityJsCode;
+
     /**
      * 获取科大讯飞语音识别配置
      * 供前端初始化语音识别使用
@@ -24,9 +34,20 @@ public class ConfigController {
     @GetMapping("/api/v1/config/xfyun")
     public ResponseEntity<?> getXFYunConfig() {
         return ResponseEntity.ok(Map.of(
-            "appId", xfyunConfig.getAppid() != null ? xfyunConfig.getAppid() : "",
-            "apiKey", xfyunConfig.getApikey() != null ? xfyunConfig.getApikey() : "",
-            "apiSecret", xfyunConfig.getApisecret() != null ? xfyunConfig.getApisecret() : ""
-        ));
+                "appId", xfyunConfig.getAppid() != null ? xfyunConfig.getAppid() : "",
+                "apiKey", xfyunConfig.getApikey() != null ? xfyunConfig.getApikey() : "",
+                "apiSecret", xfyunConfig.getApisecret() != null ? xfyunConfig.getApisecret() : ""));
+    }
+
+    /**
+     * 获取高德地图配置
+     * 供前端初始化地图使用
+     */
+    @GetMapping("/api/v1/config/amap")
+    public ResponseEntity<?> getAmapConfig() {
+        return ResponseEntity.ok(Map.of(
+                "key", amapApiKey != null ? amapApiKey : "",
+                "webServiceKey", amapWebServiceKey != null ? amapWebServiceKey : "",
+                "securityJsCode", amapSecurityJsCode != null ? amapSecurityJsCode : ""));
     }
 }

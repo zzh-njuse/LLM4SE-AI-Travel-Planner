@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * 高德地图地理编码服务
@@ -23,6 +24,7 @@ public class AmapGeocodingService {
     // 即每个请求之间延迟 400ms
     private static final long REQUEST_DELAY_MS = 400;
     private static long lastRequestTime = 0;
+    private static final ReentrantLock rateLimitLock = new ReentrantLock();
 
     @Value("${amap.api.key:}")
     private String apiKey;
@@ -40,14 +42,15 @@ public class AmapGeocodingService {
      * 确保每个请求之间间隔不小于 REQUEST_DELAY_MS
      */
     private void rateLimitWait() {
-        synchronized (AmapGeocodingService.class) {
+        rateLimitLock.lock();
+        try {
             long now = System.currentTimeMillis();
             long timeSinceLastRequest = now - lastRequestTime;
 
             if (timeSinceLastRequest < REQUEST_DELAY_MS) {
                 long sleepTime = REQUEST_DELAY_MS - timeSinceLastRequest;
+                logger.debug("等待 {}ms 以满足高德 API 速率限制（3次/秒）", sleepTime);
                 try {
-                    logger.debug("等待 {}ms 以满足速率限制", sleepTime);
                     Thread.sleep(sleepTime);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
@@ -56,6 +59,8 @@ public class AmapGeocodingService {
             }
 
             lastRequestTime = System.currentTimeMillis();
+        } finally {
+            rateLimitLock.unlock();
         }
     }
 

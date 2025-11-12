@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getTripDetail, deleteTrip, updateTrip, updateItineraryItem, deleteItineraryItem, Trip, ItineraryItem } from '../services/trip';
+import { getTripDetail, deleteTrip, updateTrip, updateItineraryItem, deleteItineraryItem, addItineraryItem, Trip, ItineraryItem } from '../services/trip';
 import MapView from '../components/MapView';
 import '../styles.css';
 
@@ -11,12 +11,27 @@ export default function TripDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showMap, setShowMap] = useState(false);
+  const [selectedDay, setSelectedDay] = useState<number | 'all'>('all'); // 新增：按天数选择
   
   // 编辑状态
   const [editingBudget, setEditingBudget] = useState(false);
   const [editingItemId, setEditingItemId] = useState<number | null>(null);
   const [tempBudget, setTempBudget] = useState(0);
   const [tempItem, setTempItem] = useState<ItineraryItem | null>(null);
+  
+  // 添加新日程项的状态
+  const [showAddItem, setShowAddItem] = useState(false);
+  const [newItemData, setNewItemData] = useState({
+    dayIndex: 1,
+    startTime: '09:00',
+    endTime: '10:00',
+    title: '',
+    type: 'attraction',
+    location: '',
+    description: '',
+    estimatedCost: 0,
+    notes: ''
+  });
 
   useEffect(() => {
     // 检查是否登录
@@ -140,6 +155,44 @@ export default function TripDetail() {
     }
   };
 
+  // 添加行程项
+  const handleAddItem = async () => {
+    if (!trip) {
+      alert('行程数据未加载');
+      return;
+    }
+
+    if (!newItemData.title.trim()) {
+      alert('请输入标题');
+      return;
+    }
+
+    if (!newItemData.location.trim()) {
+      alert('请输入地点/地址');
+      return;
+    }
+
+    try {
+      const updated = await addItineraryItem(trip.id, newItemData as ItineraryItem);
+      setTrip(updated);
+      setShowAddItem(false);
+      // 重置表单
+      setNewItemData({
+        dayIndex: 1,
+        startTime: '09:00',
+        endTime: '10:00',
+        title: '',
+        type: 'attraction',
+        location: '',
+        description: '',
+        estimatedCost: 0,
+        notes: ''
+      });
+    } catch (err: any) {
+      alert(err.response?.data?.error || '添加失败');
+    }
+  };
+
   // 更新临时行程项字段
   const updateTempItemField = (field: keyof ItineraryItem, value: any) => {
     if (tempItem) {
@@ -203,8 +256,15 @@ export default function TripDetail() {
   const getMapLocations = () => {
     if (!trip?.itinerary) return [];
     
-    return trip.itinerary
-      .map(item => {
+    let filteredItinerary = trip.itinerary;
+    
+    // 如果选择了特定天数，则只显示该天的地点
+    if (selectedDay !== 'all') {
+      filteredItinerary = trip.itinerary.filter(item => item.dayIndex === selectedDay);
+    }
+    
+    return filteredItinerary
+      .map((item, index) => {
         // 确保坐标是有效的数字
         const lng = item.coordinates?.lng;
         const lat = item.coordinates?.lat;
@@ -225,7 +285,9 @@ export default function TripDetail() {
           lng,
           lat,
           name: item.title,
-          type: item.type as 'hotel' | 'attraction' | 'restaurant' | 'other'
+          type: item.type as 'hotel' | 'attraction' | 'restaurant' | 'other',
+          id: index, // 添加唯一标识符，支持重复地点
+          dayIndex: item.dayIndex // 记录是第几天
         };
       })
       .filter((loc): loc is NonNullable<typeof loc> => loc !== null); // 过滤掉无效坐标
@@ -516,11 +578,57 @@ export default function TripDetail() {
             border: '1px solid #e0e0e0',
             marginBottom: '2rem'
           }}>
-            <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem', color: '#2c3e50' }}>
-              🗺️ 地图视图
-            </h2>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '1rem'
+            }}>
+              <h2 style={{ fontSize: '1.5rem', margin: 0, color: '#2c3e50' }}>
+                🗺️ 地图视图
+              </h2>
+              
+              {/* 天数选择下拉框 */}
+              {trip?.itinerary && trip.itinerary.length > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <label htmlFor="day-select" style={{ color: '#2c3e50', fontWeight: '500' }}>
+                    选择行程：
+                  </label>
+                  <select
+                    id="day-select"
+                    value={selectedDay}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setSelectedDay(value === 'all' ? 'all' : parseInt(value));
+                    }}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      borderRadius: '6px',
+                      border: '1px solid #ccc',
+                      backgroundColor: '#fff',
+                      color: '#2c3e50',
+                      cursor: 'pointer',
+                      fontSize: '1rem',
+                      fontWeight: '500'
+                    }}
+                  >
+                    <option value="all">所有天数</option>
+                    {Array.from(
+                      new Set(trip.itinerary.map(item => item.dayIndex))
+                    ).sort((a, b) => a - b).map(day => (
+                      <option key={day} value={day}>
+                        第 {day} 天
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+            
             {(() => {
               const mapLocations = getMapLocations();
+              // 只有在选择单个天数时才显示路线规划
+              const shouldShowRoute = selectedDay !== 'all';
               
               return mapLocations.length > 0 ? (
                 <div style={{ height: '600px', width: '100%' }}>
@@ -528,7 +636,7 @@ export default function TripDetail() {
                     locations={mapLocations}
                     center={mapLocations[0]}
                     zoom={12}
-                    showRoute={true}
+                    showRoute={shouldShowRoute}
                   />
                 </div>
               ) : (
@@ -553,9 +661,268 @@ export default function TripDetail() {
 
         {/* 详细行程 */}
         <div>
-          <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem', color: '#2c3e50' }}>
+          <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem', color: '#2c3e50' }}>
             📋 详细行程
           </h2>
+          
+          <div style={{ marginBottom: '1.5rem' }}>
+            <button
+              onClick={() => setShowAddItem(!showAddItem)}
+              style={{
+                padding: '0.6rem 1.2rem',
+                backgroundColor: '#27ae60',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '1rem',
+                fontWeight: '500',
+                transition: 'background-color 0.3s'
+              }}
+              onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#229954')}
+              onMouseOut={(e) => (e.currentTarget.style.backgroundColor = '#27ae60')}
+            >
+              {showAddItem ? '✕ 取消' : '＋ 添加日程'}
+            </button>
+          </div>
+
+          {/* 添加新日程项表单 */}
+          {showAddItem && (
+            <div style={{
+              backgroundColor: '#f0f8ff',
+              padding: '1.5rem',
+              borderRadius: '12px',
+              border: '2px solid #3498db',
+              marginBottom: '1.5rem'
+            }}>
+              <h3 style={{ fontSize: '1.2rem', marginTop: 0, color: '#2c3e50' }}>
+                ➕ 添加新日程项
+              </h3>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, 1fr)',
+                gap: '1rem'
+              }}>
+                {/* 天数 */}
+                <div>
+                  <label style={{ fontWeight: '500', color: '#2c3e50' }}>第几天 *</label>
+                  <select
+                    value={newItemData.dayIndex}
+                    onChange={(e) => setNewItemData({ ...newItemData, dayIndex: parseInt(e.target.value) })}
+                    style={{
+                      width: '100%',
+                      padding: '0.5rem',
+                      border: '1px solid #ccc',
+                      borderRadius: '4px',
+                      marginTop: '0.3rem'
+                    }}
+                  >
+                    {trip?.itinerary && Array.from(
+                      new Set(trip.itinerary.map(item => item.dayIndex))
+                    ).sort((a, b) => a - b).map(day => (
+                      <option key={day} value={day}>第 {day} 天</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* 类型 */}
+                <div>
+                  <label style={{ fontWeight: '500', color: '#2c3e50' }}>类型</label>
+                  <select
+                    value={newItemData.type}
+                    onChange={(e) => setNewItemData({ ...newItemData, type: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '0.5rem',
+                      border: '1px solid #ccc',
+                      borderRadius: '4px',
+                      marginTop: '0.3rem'
+                    }}
+                  >
+                    <option value="attraction">景点</option>
+                    <option value="restaurant">餐厅</option>
+                    <option value="hotel">酒店</option>
+                    <option value="transport">交通</option>
+                    <option value="other">其他</option>
+                  </select>
+                </div>
+
+                {/* 开始时间 */}
+                <div>
+                  <label style={{ fontWeight: '500', color: '#2c3e50' }}>开始时间</label>
+                  <input
+                    type="time"
+                    value={newItemData.startTime}
+                    onChange={(e) => setNewItemData({ ...newItemData, startTime: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '0.5rem',
+                      border: '1px solid #ccc',
+                      borderRadius: '4px',
+                      marginTop: '0.3rem'
+                    }}
+                  />
+                </div>
+
+                {/* 结束时间 */}
+                <div>
+                  <label style={{ fontWeight: '500', color: '#2c3e50' }}>结束时间</label>
+                  <input
+                    type="time"
+                    value={newItemData.endTime}
+                    onChange={(e) => setNewItemData({ ...newItemData, endTime: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '0.5rem',
+                      border: '1px solid #ccc',
+                      borderRadius: '4px',
+                      marginTop: '0.3rem'
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* 标题 */}
+              <div style={{ marginTop: '1rem' }}>
+                <label style={{ fontWeight: '500', color: '#2c3e50' }}>标题 *</label>
+                <input
+                  type="text"
+                  value={newItemData.title}
+                  onChange={(e) => setNewItemData({ ...newItemData, title: e.target.value })}
+                  placeholder="请输入日程标题"
+                  style={{
+                    width: '100%',
+                    padding: '0.5rem',
+                    border: '1px solid #ccc',
+                    borderRadius: '4px',
+                    marginTop: '0.3rem',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              {/* 地点/地址 */}
+              <div style={{ marginTop: '1rem' }}>
+                <label style={{ fontWeight: '500', color: '#2c3e50' }}>地点/地址 * (会自动更新地图)</label>
+                <input
+                  type="text"
+                  value={newItemData.location}
+                  onChange={(e) => setNewItemData({ ...newItemData, location: e.target.value })}
+                  placeholder="请输入具体地址，如：北京市朝阳区XXX"
+                  style={{
+                    width: '100%',
+                    padding: '0.5rem',
+                    border: '1px solid #ccc',
+                    borderRadius: '4px',
+                    marginTop: '0.3rem',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              {/* 描述 */}
+              <div style={{ marginTop: '1rem' }}>
+                <label style={{ fontWeight: '500', color: '#2c3e50' }}>描述</label>
+                <textarea
+                  value={newItemData.description}
+                  onChange={(e) => setNewItemData({ ...newItemData, description: e.target.value })}
+                  placeholder="请输入日程描述"
+                  rows={2}
+                  style={{
+                    width: '100%',
+                    padding: '0.5rem',
+                    border: '1px solid #ccc',
+                    borderRadius: '4px',
+                    marginTop: '0.3rem',
+                    boxSizing: 'border-box',
+                    resize: 'vertical'
+                  }}
+                />
+              </div>
+
+              {/* 成本和备注 */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '1rem',
+                marginTop: '1rem'
+              }}>
+                <div>
+                  <label style={{ fontWeight: '500', color: '#2c3e50' }}>预估成本 (元)</label>
+                  <input
+                    type="number"
+                    value={newItemData.estimatedCost}
+                    onChange={(e) => setNewItemData({ ...newItemData, estimatedCost: parseFloat(e.target.value) || 0 })}
+                    placeholder="0"
+                    style={{
+                      width: '100%',
+                      padding: '0.5rem',
+                      border: '1px solid #ccc',
+                      borderRadius: '4px',
+                      marginTop: '0.3rem',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontWeight: '500', color: '#2c3e50' }}>备注</label>
+                  <input
+                    type="text"
+                    value={newItemData.notes}
+                    onChange={(e) => setNewItemData({ ...newItemData, notes: e.target.value })}
+                    placeholder="添加备注（可选）"
+                    style={{
+                      width: '100%',
+                      padding: '0.5rem',
+                      border: '1px solid #ccc',
+                      borderRadius: '4px',
+                      marginTop: '0.3rem',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* 提交按钮 */}
+              <div style={{
+                display: 'flex',
+                gap: '1rem',
+                marginTop: '1.5rem'
+              }}>
+                <button
+                  onClick={handleAddItem}
+                  style={{
+                    padding: '0.6rem 1.2rem',
+                    backgroundColor: '#27ae60',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '1rem',
+                    fontWeight: '500'
+                  }}
+                >
+                  ✓ 确认添加
+                </button>
+                <button
+                  onClick={() => setShowAddItem(false)}
+                  style={{
+                    padding: '0.6rem 1.2rem',
+                    backgroundColor: '#95a5a6',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '1rem',
+                    fontWeight: '500'
+                  }}
+                >
+                  ✕ 取消
+                </button>
+              </div>
+            </div>
+          )}
 
           {dayGroups.map(({ day, items }) => (
             <div

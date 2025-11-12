@@ -1,6 +1,7 @@
 import express from 'express'
 import healthRouter from './controllers/health'
 import authRouter from './controllers/auth'
+import configRouter from './controllers/config'
 import * as tripController from './controllers/trip'
 
 const app = express()
@@ -22,6 +23,7 @@ app.use((req, res, next) => {
 app.use(express.json())
 app.use('/api/v1/health', healthRouter)
 app.use('/api/v1/auth', authRouter)
+app.use('/api/v1/config', configRouter)
 
 // Trip routes
 app.post('/api/v1/trips', tripController.createTrip)
