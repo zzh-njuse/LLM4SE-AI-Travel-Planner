@@ -161,7 +161,7 @@ export default function CreateTrip() {
               name="rawInput"
               value={formData.rawInput}
               onChange={handleChange}
-              placeholder="例如：我想去杭州玩三天，预算3000元，两个人，喜欢自然风光和美食..."
+              placeholder="建议提及每日从酒店出发最后回到酒店"
               rows={4}
               style={{ 
                 width: '100%', 
@@ -214,7 +214,7 @@ export default function CreateTrip() {
                 />
               </div>
               <small style={{ color: '#888', fontSize: '0.8rem', display: 'block', marginTop: '0.3rem' }}>
-                语音: "11月15日出发"
+                例如:"2025年11月15日"
               </small>
             </div>
             <div className="form-group">
@@ -233,7 +233,7 @@ export default function CreateTrip() {
                 />
               </div>
               <small style={{ color: '#888', fontSize: '0.8rem', display: 'block', marginTop: '0.3rem' }}>
-                或说: "玩三天"
+                例如:"2025年11月20日"
               </small>
             </div>
           </div>
@@ -258,7 +258,7 @@ export default function CreateTrip() {
                 />
               </div>
               <small style={{ color: '#888', fontSize: '0.8rem', display: 'block', marginTop: '0.3rem' }}>
-                语音: "两个人"
+                例如: "两个人"
               </small>
             </div>
             <div className="form-group">
@@ -279,7 +279,7 @@ export default function CreateTrip() {
                 />
               </div>
               <small style={{ color: '#888', fontSize: '0.8rem', display: 'block', marginTop: '0.3rem' }}>
-                语音: "预算3000元"
+                例如: "3000元"
               </small>
             </div>
           </div>
@@ -301,7 +301,7 @@ export default function CreateTrip() {
               />
             </div>
             <small style={{ color: '#888', fontSize: '0.8rem', display: 'block', marginTop: '0.3rem' }}>
-              语音: "喜欢美食和自然风光"
+              例如: "喜欢美食和自然风光"
             </small>
           </div>
 
