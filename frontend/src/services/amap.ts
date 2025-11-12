@@ -1,6 +1,7 @@
 /**
  * 高德地图服务
  * 负责加载高德地图 API 和管理配置
+ * 包含速率限制机制，避免超过高德 API 的 3次/秒 并发限制
  */
 
 export interface AmapConfig {
@@ -9,6 +10,28 @@ export interface AmapConfig {
 }
 
 const AMAP_CONFIG_KEY = 'amap_config';
+
+// 高德地图 API 限制：3次/秒，为了安全起见，我们限制为 2.5 次/秒
+// 即每个请求之间延迟 400ms
+const REQUEST_DELAY_MS = 400;
+let lastRequestTime = 0;
+
+/**
+ * 等待以满足请求速率限制
+ * 确保每个请求之间间隔不小于 REQUEST_DELAY_MS
+ */
+async function rateLimitWait(): Promise<void> {
+  const now = Date.now();
+  const timeSinceLastRequest = now - lastRequestTime;
+  
+  if (timeSinceLastRequest < REQUEST_DELAY_MS) {
+    const sleepTime = REQUEST_DELAY_MS - timeSinceLastRequest;
+    console.debug(`等待 ${sleepTime}ms 以满足高德 API 速率限制`);
+    await new Promise(resolve => setTimeout(resolve, sleepTime));
+  }
+  
+  lastRequestTime = Date.now();
+}
 
 /**
  * 保存高德地图配置到 localStorage
@@ -67,6 +90,9 @@ export async function geocodeAddress(address: string): Promise<{ lng: number; la
     throw new Error('高德地图 API 未加载');
   }
 
+  // 应用速率限制
+  await rateLimitWait();
+
   return new Promise((resolve) => {
     const geocoder = new AMap.Geocoder();
     geocoder.getLocation(address, (status: string, result: any) => {
@@ -89,6 +115,9 @@ export async function reverseGeocode(lng: number, lat: number): Promise<string |
   if (!AMap) {
     throw new Error('高德地图 API 未加载');
   }
+
+  // 应用速率限制
+  await rateLimitWait();
 
   return new Promise((resolve) => {
     const geocoder = new AMap.Geocoder();
